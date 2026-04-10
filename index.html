@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>红五五家记分工具</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">V1 / 一般情况</p>
+          <h1>红五五家记分工具</h1>
+          <p class="hero-copy">
+            适用于 5 人局，按百科的一般情况规则自动结算、累计统计与导出记录。
+          </p>
+        </div>
+        <div class="hero-actions">
+          <button id="export-csv-btn" class="secondary-btn">导出 CSV</button>
+          <button id="export-json-btn" class="secondary-btn">导出 JSON</button>
+        </div>
+      </header>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>玩家设置</h2>
+            <p>固定 5 个玩家槽位，支持改名，内部仍保留 A-E 的固定编号。</p>
+          </div>
+          <button id="reset-names-btn" class="ghost-btn">恢复默认姓名</button>
+        </div>
+        <div id="players-grid" class="players-grid"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>新增一局</h2>
+            <p>第一版仅支持一般情况，输入庄家、伴家和闲家抓分即可自动结算。</p>
+          </div>
+          <div id="editing-badge" class="badge hidden">正在编辑历史记录</div>
+        </div>
+
+        <form id="round-form" class="round-form">
+          <div class="field">
+            <label for="round-no">局号</label>
+            <input id="round-no" name="roundNo" type="number" min="1" step="1" required />
+          </div>
+
+          <div class="field">
+            <label for="dealer-select">庄家</label>
+            <select id="dealer-select" name="dealerId" required></select>
+          </div>
+
+          <div class="field">
+            <label for="partner-select">伴家</label>
+            <select id="partner-select" name="partnerId" required></select>
+          </div>
+
+          <div class="field">
+            <label for="idle-score">闲家抓分</label>
+            <input
+              id="idle-score"
+              name="idleScore"
+              type="number"
+              min="0"
+              max="300"
+              step="5"
+              required
+            />
+          </div>
+
+          <div class="field field-wide">
+            <label>闲家自动推导</label>
+            <div id="idle-players-preview" class="inline-preview">请选择庄家和伴家</div>
+          </div>
+
+          <div class="field field-wide">
+            <label>结算预览</label>
+            <div id="settlement-preview" class="settlement-preview">
+              输入信息后点击“预览结算”，系统将展示本局 5 人得分。
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" id="preview-btn" class="secondary-btn">预览结算</button>
+            <button type="submit" id="save-btn" class="primary-btn">保存本局</button>
+            <button type="button" id="clear-btn" class="ghost-btn">清空输入</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="stats-grid">
+        <article class="panel stat-panel">
+          <h2>数据看板</h2>
+          <div id="overview-cards" class="overview-cards"></div>
+        </article>
+
+        <article class="panel">
+          <h2>总分排行榜</h2>
+          <div id="leaderboard" class="leaderboard"></div>
+        </article>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>历史记录</h2>
+            <p>支持编辑与删除，修改后将自动重算累计总分、胜率和叫庄率。</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="history-table">
+            <thead id="history-head"></thead>
+            <tbody id="history-body"></tbody>
+          </table>
+        </div>
+        <div id="history-empty" class="empty-state hidden">还没有记录，先保存第一局吧。</div>
+      </section>
+
+      <section class="panel footnote">
+        <h2>规则说明</h2>
+        <p>
+          当前版本按用户指定的百度百科“一般情况”规则实现，胜负判定为：闲家抓分
+          <code>&lt; 120</code> 时庄家方胜，<code>&gt;= 120</code> 时闲家方胜。
+        </p>
+      </section>
+    </main>
+
+    <template id="player-card-template">
+      <label class="player-card">
+        <span class="player-id"></span>
+        <input class="player-name-input" type="text" maxlength="20" />
+      </label>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>

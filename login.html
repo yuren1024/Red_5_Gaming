@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>登录 - 红五游戏中心</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="auth.js"></script>
+    <script>
+      window.HWWJAuth.redirectIfLoggedIn("games.html");
+    </script>
+  </head>
+  <body>
+    <main class="auth-shell">
+      <section class="auth-card">
+        <p class="eyebrow">Simple Login</p>
+        <h1>红五游戏中心登录</h1>
+        <p class="auth-copy">当前先使用固定账号登录，登录后进入游戏选择页面。</p>
+
+        <form id="login-form" class="auth-form">
+          <div class="field">
+            <label for="username">账号</label>
+            <input id="username" name="username" type="text" autocomplete="username" required />
+          </div>
+
+          <div class="field">
+            <label for="password">密码</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              required
+            />
+          </div>
+
+          <button type="submit" class="primary-btn">登录</button>
+        </form>
+
+        <div class="auth-tips">
+          <p>默认账号：<strong>于人</strong></p>
+          <p>默认密码：<strong>123456</strong></p>
+          <p id="login-message" class="auth-message hidden"></p>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const loginForm = document.querySelector("#login-form");
+      const usernameInput = document.querySelector("#username");
+      const passwordInput = document.querySelector("#password");
+      const loginMessage = document.querySelector("#login-message");
+
+      usernameInput.value = window.HWWJAuth.defaultUsername;
+      passwordInput.value = window.HWWJAuth.defaultPassword;
+
+      loginForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const result = window.HWWJAuth.login(usernameInput.value, passwordInput.value);
+
+        if (!result.ok) {
+          loginMessage.textContent = result.message;
+          loginMessage.classList.remove("hidden");
+          return;
+        }
+
+        loginMessage.classList.add("hidden");
+        window.location.href = "games.html";
+      });
+    </script>
+  </body>
+</html>

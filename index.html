@@ -5,18 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>红五五家记分工具</title>
     <link rel="stylesheet" href="styles.css" />
+    <script src="auth.js"></script>
+    <script>
+      window.HWWJAuth.protectPage("login.html");
+    </script>
   </head>
   <body>
     <main class="app-shell">
       <header class="hero">
         <div>
-          <p class="eyebrow">V1 / 一般情况</p>
+          <p class="eyebrow">V2 / 一般情况 + 独打 + 逃跑</p>
           <h1>红五五家记分工具</h1>
           <p class="hero-copy">
-            适用于 5 人局，按百科的一般情况规则自动结算、累计统计与导出记录。
+            适用于 5 人局，按百科规则支持一般情况、独打和逃跑结算，自动累计统计与导出记录。
           </p>
         </div>
         <div class="hero-actions">
+          <button id="back-to-games-btn" class="ghost-btn">游戏选择</button>
+          <button id="logout-btn" class="ghost-btn">退出登录</button>
           <button id="export-csv-btn" class="secondary-btn">导出 CSV</button>
           <button id="export-json-btn" class="secondary-btn">导出 JSON</button>
         </div>
@@ -37,7 +43,7 @@
         <div class="panel-header">
           <div>
             <h2>新增一局</h2>
-            <p>第一版仅支持一般情况，输入庄家、伴家和闲家抓分即可自动结算。</p>
+            <p>支持一般情况、独打与逃跑；表单会根据所选模式自动切换需要填写的字段。</p>
           </div>
           <div id="editing-badge" class="badge hidden">正在编辑历史记录</div>
         </div>
@@ -49,16 +55,32 @@
           </div>
 
           <div class="field">
+            <label for="mode-select">模式</label>
+            <select id="mode-select" name="mode" required>
+              <option value="normal" selected>一般情况</option>
+              <option value="solo">独打</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="finish-type-select">结束方式</label>
+            <select id="finish-type-select" name="finishType" required>
+              <option value="score" selected>抓分结算</option>
+              <option value="escape">逃跑</option>
+            </select>
+          </div>
+
+          <div class="field">
             <label for="dealer-select">庄家</label>
             <select id="dealer-select" name="dealerId" required></select>
           </div>
 
-          <div class="field">
+          <div class="field" id="partner-field">
             <label for="partner-select">伴家</label>
             <select id="partner-select" name="partnerId" required></select>
           </div>
 
-          <div class="field">
+          <div class="field" id="idle-score-field">
             <label for="idle-score">闲家抓分</label>
             <input
               id="idle-score"
@@ -69,6 +91,11 @@
               step="5"
               required
             />
+          </div>
+
+          <div class="field hidden" id="escape-player-field">
+            <label for="escape-player-select">逃跑玩家</label>
+            <select id="escape-player-select" name="escapePlayerId"></select>
           </div>
 
           <div class="field field-wide">
@@ -122,8 +149,8 @@
       <section class="panel footnote">
         <h2>规则说明</h2>
         <p>
-          当前版本按用户指定的百度百科“一般情况”规则实现，胜负判定为：闲家抓分
-          <code>&lt; 120</code> 时庄家方胜，<code>&gt;= 120</code> 时闲家方胜。
+          当前版本按用户指定的百度百科规则实现：一般情况与独打都按闲家抓分结算，闲家抓分
+          <code>&lt; 120</code> 时庄家方胜，<code>&gt;= 120</code> 时闲家方胜；逃跑按固定罚分结算。
         </p>
       </section>
     </main>
@@ -135,6 +162,16 @@
       </label>
     </template>
 
+    <script>
+      document.querySelector("#back-to-games-btn").addEventListener("click", () => {
+        window.location.href = "games.html";
+      });
+
+      document.querySelector("#logout-btn").addEventListener("click", () => {
+        window.HWWJAuth.logout();
+        window.location.href = "login.html";
+      });
+    </script>
     <script src="app.js"></script>
   </body>
 </html>

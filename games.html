@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>游戏选择 - 红五游戏中心</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="auth.js"></script>
+    <script>
+      window.HWWJAuth.protectPage("login.html");
+    </script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Game Select</p>
+          <h1>游戏选择</h1>
+          <p class="hero-copy">
+            欢迎回来，<span id="current-username"></span>。当前先开放一个游戏入口。
+          </p>
+        </div>
+        <div class="hero-actions">
+          <button id="logout-btn" class="ghost-btn">退出登录</button>
+        </div>
+      </header>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>可选游戏</h2>
+            <p>当前版本仅提供红五五家记分工具入口。</p>
+          </div>
+        </div>
+
+        <div class="game-grid">
+          <article class="game-card">
+            <p class="eyebrow">Available Now</p>
+            <h3>红五五家</h3>
+            <p>进入记分页面，支持一般情况、独打和逃跑的本地记分与统计。</p>
+            <button id="enter-hongwu-btn" class="primary-btn">进入游戏</button>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      document.querySelector("#current-username").textContent = window.HWWJAuth.getCurrentUsername();
+
+      document.querySelector("#enter-hongwu-btn").addEventListener("click", () => {
+        window.location.href = "index.html";
+      });
+
+      document.querySelector("#logout-btn").addEventListener("click", () => {
+        window.HWWJAuth.logout();
+        window.location.href = "login.html";
+      });
+    </script>
+  </body>
+</html>

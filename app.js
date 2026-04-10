@@ -1,6 +1,7 @@
 const STORAGE_KEY = "hwwj.appState.v1";
 
 const DEFAULT_PLAYERS = ["A", "B", "C", "D", "E"].map((id) => ({ id, name: id }));
+const PLAYER_IDS = DEFAULT_PLAYERS.map((player) => player.id);
 
 const NORMAL_RULES = [
   { min: 0, max: 0, winnerSide: "dealer", dealerScore: 18, partnerScore: 9, idleScorePerPlayer: -9 },
@@ -38,6 +39,42 @@ const NORMAL_RULES = [
   { min: 300, max: 300, winnerSide: "idle", dealerScore: -63, partnerScore: -9, idleScorePerPlayer: 24 },
 ];
 
+const SOLO_RULES = [
+  { min: 0, max: 0, winnerSide: "dealer", dealerScore: 72, idleScorePerPlayer: -18 },
+  { min: 5, max: 5, winnerSide: "dealer", dealerScore: 64, idleScorePerPlayer: -16 },
+  { min: 10, max: 10, winnerSide: "dealer", dealerScore: 56, idleScorePerPlayer: -14 },
+  { min: 15, max: 15, winnerSide: "dealer", dealerScore: 48, idleScorePerPlayer: -12 },
+  { min: 20, max: 20, winnerSide: "dealer", dealerScore: 40, idleScorePerPlayer: -10 },
+  { min: 25, max: 25, winnerSide: "dealer", dealerScore: 32, idleScorePerPlayer: -8 },
+  { min: 30, max: 55, winnerSide: "dealer", dealerScore: 24, idleScorePerPlayer: -6 },
+  { min: 60, max: 85, winnerSide: "dealer", dealerScore: 16, idleScorePerPlayer: -4 },
+  { min: 90, max: 115, winnerSide: "dealer", dealerScore: 8, idleScorePerPlayer: -2 },
+  { min: 120, max: 155, winnerSide: "idle", dealerScore: -8, idleScorePerPlayer: 2 },
+  { min: 160, max: 175, winnerSide: "idle", dealerScore: -16, idleScorePerPlayer: 4 },
+  { min: 180, max: 195, winnerSide: "idle", dealerScore: -24, idleScorePerPlayer: 6 },
+  { min: 200, max: 200, winnerSide: "idle", dealerScore: -32, idleScorePerPlayer: 8 },
+  { min: 205, max: 205, winnerSide: "idle", dealerScore: -40, idleScorePerPlayer: 10 },
+  { min: 210, max: 210, winnerSide: "idle", dealerScore: -48, idleScorePerPlayer: 12 },
+  { min: 215, max: 215, winnerSide: "idle", dealerScore: -56, idleScorePerPlayer: 14 },
+  { min: 220, max: 220, winnerSide: "idle", dealerScore: -64, idleScorePerPlayer: 16 },
+  { min: 225, max: 225, winnerSide: "idle", dealerScore: -72, idleScorePerPlayer: 18 },
+  { min: 230, max: 230, winnerSide: "idle", dealerScore: -80, idleScorePerPlayer: 20 },
+  { min: 235, max: 235, winnerSide: "idle", dealerScore: -88, idleScorePerPlayer: 22 },
+  { min: 240, max: 240, winnerSide: "idle", dealerScore: -96, idleScorePerPlayer: 24 },
+  { min: 245, max: 245, winnerSide: "idle", dealerScore: -104, idleScorePerPlayer: 26 },
+  { min: 250, max: 250, winnerSide: "idle", dealerScore: -112, idleScorePerPlayer: 28 },
+  { min: 255, max: 255, winnerSide: "idle", dealerScore: -120, idleScorePerPlayer: 30 },
+  { min: 260, max: 260, winnerSide: "idle", dealerScore: -128, idleScorePerPlayer: 32 },
+  { min: 265, max: 265, winnerSide: "idle", dealerScore: -136, idleScorePerPlayer: 34 },
+  { min: 270, max: 270, winnerSide: "idle", dealerScore: -144, idleScorePerPlayer: 36 },
+  { min: 275, max: 275, winnerSide: "idle", dealerScore: -152, idleScorePerPlayer: 38 },
+  { min: 280, max: 280, winnerSide: "idle", dealerScore: -160, idleScorePerPlayer: 40 },
+  { min: 285, max: 285, winnerSide: "idle", dealerScore: -168, idleScorePerPlayer: 42 },
+  { min: 290, max: 290, winnerSide: "idle", dealerScore: -176, idleScorePerPlayer: 44 },
+  { min: 295, max: 295, winnerSide: "idle", dealerScore: -184, idleScorePerPlayer: 46 },
+  { min: 300, max: 300, winnerSide: "idle", dealerScore: -192, idleScorePerPlayer: 48 },
+];
+
 const state = loadState();
 
 const elements = {
@@ -45,9 +82,15 @@ const elements = {
   resetNamesBtn: document.querySelector("#reset-names-btn"),
   roundForm: document.querySelector("#round-form"),
   roundNo: document.querySelector("#round-no"),
+  modeSelect: document.querySelector("#mode-select"),
+  finishTypeSelect: document.querySelector("#finish-type-select"),
   dealerSelect: document.querySelector("#dealer-select"),
+  partnerField: document.querySelector("#partner-field"),
   partnerSelect: document.querySelector("#partner-select"),
+  idleScoreField: document.querySelector("#idle-score-field"),
   idleScoreInput: document.querySelector("#idle-score"),
+  escapePlayerField: document.querySelector("#escape-player-field"),
+  escapePlayerSelect: document.querySelector("#escape-player-select"),
   idlePlayersPreview: document.querySelector("#idle-players-preview"),
   settlementPreview: document.querySelector("#settlement-preview"),
   previewBtn: document.querySelector("#preview-btn"),
@@ -81,16 +124,12 @@ function bindEvents() {
   elements.previewBtn.addEventListener("click", handlePreview);
   elements.clearBtn.addEventListener("click", resetForm);
   elements.roundForm.addEventListener("submit", handleSaveRound);
-  elements.dealerSelect.addEventListener("change", () => {
-    syncPartnerOptions();
-    renderIdlePlayersPreview();
-  });
-  elements.partnerSelect.addEventListener("change", renderIdlePlayersPreview);
-  elements.idleScoreInput.addEventListener("input", () => {
-    if (!editingRoundId) {
-      renderIdlePlayersPreview();
-    }
-  });
+  elements.modeSelect.addEventListener("change", handleRoundStructureChange);
+  elements.finishTypeSelect.addEventListener("change", handleRoundStructureChange);
+  elements.dealerSelect.addEventListener("change", handleRoundStructureChange);
+  elements.partnerSelect.addEventListener("change", handleRoundStructureChange);
+  elements.escapePlayerSelect.addEventListener("change", markPreviewDirty);
+  elements.idleScoreInput.addEventListener("input", markPreviewDirty);
   elements.exportCsvBtn.addEventListener("click", exportRoundsCsv);
   elements.exportJsonBtn.addEventListener("click", exportJson);
 }
@@ -104,10 +143,10 @@ function loadState() {
   try {
     const parsed = JSON.parse(raw);
     return {
-      appVersion: "v1",
-      ruleVersion: "baike-normal-only",
+      appVersion: "v2",
+      ruleVersion: "baike-normal-solo-escape",
       players: sanitizePlayers(parsed.players),
-      rounds: Array.isArray(parsed.rounds) ? parsed.rounds : [],
+      rounds: sanitizeRounds(parsed.rounds),
     };
   } catch (error) {
     console.warn("读取本地数据失败，已恢复默认状态。", error);
@@ -117,8 +156,8 @@ function loadState() {
 
 function createDefaultState() {
   return {
-    appVersion: "v1",
-    ruleVersion: "baike-normal-only",
+    appVersion: "v2",
+    ruleVersion: "baike-normal-solo-escape",
     players: structuredClone(DEFAULT_PLAYERS),
     rounds: [],
   };
@@ -134,6 +173,94 @@ function sanitizePlayers(players) {
     const name = match?.name?.toString().trim();
     return { id: player.id, name: name || player.id };
   });
+}
+
+function sanitizeRounds(rounds) {
+  if (!Array.isArray(rounds)) {
+    return [];
+  }
+
+  return rounds.map(sanitizeRound).filter(Boolean);
+}
+
+function sanitizeRound(round) {
+  if (!round || typeof round !== "object") {
+    return null;
+  }
+
+  const roundNo = Number.parseInt(round.roundNo, 10);
+  if (!Number.isInteger(roundNo) || roundNo < 1 || !isValidPlayerId(round.dealerId)) {
+    return null;
+  }
+
+  const mode = round.mode === "solo" ? "solo" : "normal";
+  const finishType = round.finishType === "escape" ? "escape" : "score";
+  const dealerId = round.dealerId;
+  const partnerId =
+    mode === "normal" && isValidPlayerId(round.partnerId) && round.partnerId !== dealerId
+      ? round.partnerId
+      : null;
+  if (mode === "normal" && !partnerId) {
+    return null;
+  }
+
+  const idlePlayerIds = getIdlePlayerIdsForRoles({ mode, dealerId, partnerId });
+  const idleScore =
+    finishType === "score" && Number.isInteger(Number(round.idleScore)) ? Number(round.idleScore) : null;
+  const escapePlayerId =
+    finishType === "escape" && isValidPlayerId(round.escapePlayerId) ? round.escapePlayerId : null;
+  const winnerSide =
+    finishType === "score" && (round.winnerSide === "dealer" || round.winnerSide === "idle")
+      ? round.winnerSide
+      : null;
+  const winnerPlayerIds = sanitizeWinnerPlayerIds(round.winnerPlayerIds);
+  const normalizedWinnerPlayerIds =
+    winnerPlayerIds.length > 0
+      ? winnerPlayerIds
+      : deriveWinnerPlayerIds({
+          mode,
+          finishType,
+          dealerId,
+          partnerId,
+          idlePlayerIds,
+          winnerSide,
+          escapePlayerId,
+        });
+
+  return {
+    id: String(round.id || createRoundId()),
+    roundNo,
+    mode,
+    finishType,
+    dealerId,
+    partnerId,
+    idlePlayerIds,
+    idleScore,
+    escapePlayerId,
+    winnerSide,
+    winnerPlayerIds: normalizedWinnerPlayerIds,
+    settlement: sanitizeSettlement(round.settlement),
+    ruleSnapshot: round.ruleSnapshot && typeof round.ruleSnapshot === "object" ? round.ruleSnapshot : {},
+    note: typeof round.note === "string" ? round.note : "",
+    createdAt: round.createdAt || "",
+    updatedAt: round.updatedAt || round.createdAt || "",
+  };
+}
+
+function sanitizeSettlement(settlement) {
+  const normalized = {};
+  for (const playerId of PLAYER_IDS) {
+    normalized[playerId] = Number(settlement?.[playerId] ?? 0);
+  }
+  return normalized;
+}
+
+function sanitizeWinnerPlayerIds(playerIds) {
+  if (!Array.isArray(playerIds)) {
+    return [];
+  }
+
+  return [...new Set(playerIds.filter(isValidPlayerId))];
 }
 
 function saveState() {
@@ -165,19 +292,19 @@ function populateRoleSelects() {
     .join("");
 
   elements.dealerSelect.innerHTML = `<option value="">请选择</option>${options}`;
-  elements.partnerSelect.innerHTML = `<option value="">请选择</option>${options}`;
+  syncPartnerOptions();
+  syncEscapePlayerOptions();
 }
 
-function syncPartnerOptions() {
+function syncPartnerOptions(selectedPartnerId = elements.partnerSelect.value) {
   const dealerId = elements.dealerSelect.value;
-  const currentPartnerId = elements.partnerSelect.value;
   const partnerOptions = ['<option value="">请选择</option>']
     .concat(
       state.players
         .filter((player) => player.id !== dealerId)
         .map(
           (player) =>
-            `<option value="${player.id}" ${currentPartnerId === player.id ? "selected" : ""}>${escapeHtml(
+            `<option value="${player.id}" ${selectedPartnerId === player.id ? "selected" : ""}>${escapeHtml(
               getPlayerLabel(player.id)
             )}</option>`
         )
@@ -185,14 +312,34 @@ function syncPartnerOptions() {
     .join("");
 
   elements.partnerSelect.innerHTML = partnerOptions;
-  if (dealerId && currentPartnerId === dealerId) {
-    elements.partnerSelect.value = "";
+  if (selectedPartnerId && selectedPartnerId !== dealerId) {
+    elements.partnerSelect.value = selectedPartnerId;
+  }
+}
+
+function syncEscapePlayerOptions(selectedEscapePlayerId = elements.escapePlayerSelect.value) {
+  const options = ['<option value="">请选择</option>']
+    .concat(
+      state.players.map(
+        (player) =>
+          `<option value="${player.id}" ${selectedEscapePlayerId === player.id ? "selected" : ""}>${escapeHtml(
+            getPlayerLabel(player.id)
+          )}</option>`
+      )
+    )
+    .join("");
+
+  elements.escapePlayerSelect.innerHTML = options;
+  if (selectedEscapePlayerId) {
+    elements.escapePlayerSelect.value = selectedEscapePlayerId;
   }
 }
 
 function syncFormDefaults() {
+  elements.modeSelect.value = "normal";
+  elements.finishTypeSelect.value = "score";
   elements.roundNo.value = getNextRoundNo();
-  syncPartnerOptions();
+  updateRoundFormVisibility();
   renderIdlePlayersPreview();
   renderSettlementPlaceholder();
   updateEditingState(false);
@@ -230,28 +377,76 @@ function resetPlayerNames() {
 }
 
 function preserveFormSelection() {
-  const currentDealerId = elements.dealerSelect.value;
-  const currentPartnerId = elements.partnerSelect.value;
+  const currentFormState = {
+    mode: elements.modeSelect.value,
+    finishType: elements.finishTypeSelect.value,
+    dealerId: elements.dealerSelect.value,
+    partnerId: elements.partnerSelect.value,
+    idleScore: elements.idleScoreInput.value,
+    escapePlayerId: elements.escapePlayerSelect.value,
+  };
 
-  elements.dealerSelect.value = currentDealerId;
-  syncPartnerOptions();
-  if (currentPartnerId && currentPartnerId !== currentDealerId) {
-    elements.partnerSelect.value = currentPartnerId;
-  }
+  elements.modeSelect.value = currentFormState.mode;
+  elements.finishTypeSelect.value = currentFormState.finishType;
+  elements.dealerSelect.value = currentFormState.dealerId;
+  syncPartnerOptions(currentFormState.partnerId);
+  syncEscapePlayerOptions(currentFormState.escapePlayerId);
+  elements.idleScoreInput.value = currentFormState.idleScore;
+  updateRoundFormVisibility();
   renderIdlePlayersPreview();
+}
+
+function handleRoundStructureChange() {
+  updateRoundFormVisibility();
+  renderIdlePlayersPreview();
+  markPreviewDirty();
+}
+
+function updateRoundFormVisibility() {
+  const mode = getSelectedMode();
+  const finishType = getSelectedFinishType();
+  const isSolo = mode === "solo";
+  const isEscape = finishType === "escape";
+
+  if (isSolo) {
+    elements.partnerSelect.value = "";
+  }
+
+  elements.partnerField.classList.toggle("hidden", isSolo);
+  elements.idleScoreField.classList.toggle("hidden", isEscape);
+  elements.escapePlayerField.classList.toggle("hidden", !isEscape);
+
+  elements.partnerSelect.disabled = isSolo;
+  elements.partnerSelect.required = !isSolo;
+  elements.idleScoreInput.disabled = isEscape;
+  elements.idleScoreInput.required = !isEscape;
+  elements.escapePlayerSelect.disabled = !isEscape;
+  elements.escapePlayerSelect.required = isEscape;
+
+  syncPartnerOptions();
+  syncEscapePlayerOptions();
 }
 
 function renderIdlePlayersPreview() {
   const dealerId = elements.dealerSelect.value;
-  const partnerId = elements.partnerSelect.value;
+  const mode = getSelectedMode();
+  const partnerId = mode === "normal" ? elements.partnerSelect.value : null;
 
-  if (!dealerId || !partnerId) {
+  if (!dealerId) {
+    elements.idlePlayersPreview.textContent = "请选择庄家";
+    return;
+  }
+  if (mode === "normal" && !partnerId) {
     elements.idlePlayersPreview.textContent = "请选择庄家和伴家";
     return;
   }
 
-  const idlePlayers = getIdlePlayerIds(dealerId, partnerId).map(getPlayerLabel);
+  const idlePlayers = getIdlePlayerIdsForRoles({ mode, dealerId, partnerId }).map(getPlayerLabel);
   elements.idlePlayersPreview.textContent = idlePlayers.join(" / ");
+}
+
+function markPreviewDirty() {
+  renderSettlementPlaceholder();
 }
 
 function handlePreview() {
@@ -296,59 +491,54 @@ function handleSaveRound(event) {
 }
 
 function buildRoundPayloadFromForm() {
-  const roundNo = Number.parseInt(elements.roundNo.value, 10);
+  const roundInput = normalizeRoundInput();
+  validateRoundInput(roundInput);
+  const settlementResult = settleRound(roundInput);
+  return buildRoundRecord(roundInput, settlementResult);
+}
+
+function normalizeRoundInput() {
+  const mode = getSelectedMode();
+  const finishType = getSelectedFinishType();
   const dealerId = elements.dealerSelect.value;
-  const partnerId = elements.partnerSelect.value;
-  const idleScore = Number.parseInt(elements.idleScoreInput.value, 10);
-
-  validateRoundInput({ roundNo, dealerId, partnerId, idleScore });
-
-  const idlePlayerIds = getIdlePlayerIds(dealerId, partnerId);
-  const rule = lookupRule(idleScore);
-  const settlement = {};
-
-  for (const player of state.players) {
-    if (player.id === dealerId) settlement[player.id] = rule.dealerScore;
-    else if (player.id === partnerId) settlement[player.id] = rule.partnerScore;
-    else settlement[player.id] = rule.idleScorePerPlayer;
-  }
+  const partnerId = mode === "normal" ? elements.partnerSelect.value : null;
+  const idleScore = finishType === "score" ? Number.parseInt(elements.idleScoreInput.value, 10) : null;
+  const escapePlayerId = finishType === "escape" ? elements.escapePlayerSelect.value : null;
 
   return {
-    roundNo,
-    mode: "normal",
+    roundNo: Number.parseInt(elements.roundNo.value, 10),
+    mode,
+    finishType,
     dealerId,
     partnerId,
-    idlePlayerIds,
     idleScore,
-    winnerSide: rule.winnerSide,
-    settlement,
-    ruleSnapshot: {
-      dealerScore: rule.dealerScore,
-      partnerScore: rule.partnerScore,
-      idleScorePerPlayer: rule.idleScorePerPlayer,
-    },
-    note: "",
+    escapePlayerId,
   };
 }
 
-function validateRoundInput({ roundNo, dealerId, partnerId, idleScore }) {
+function validateRoundInput({ roundNo, mode, finishType, dealerId, partnerId, idleScore, escapePlayerId }) {
   if (!Number.isInteger(roundNo) || roundNo < 1) {
     throw new Error("局号必须是大于等于 1 的整数。");
   }
   if (!dealerId) {
     throw new Error("请选择庄家。");
   }
-  if (!partnerId) {
+  if (mode === "normal" && !partnerId) {
     throw new Error("请选择伴家。");
   }
-  if (dealerId === partnerId) {
+  if (partnerId && dealerId === partnerId) {
     throw new Error("庄家和伴家不能是同一位玩家。");
   }
-  if (!Number.isInteger(idleScore) || idleScore < 0 || idleScore > 300) {
-    throw new Error("闲家抓分必须在 0 到 300 之间。");
+  if (finishType === "score") {
+    if (!Number.isInteger(idleScore) || idleScore < 0 || idleScore > 300) {
+      throw new Error("闲家抓分必须在 0 到 300 之间。");
+    }
+    if (idleScore % 5 !== 0) {
+      throw new Error("闲家抓分必须是 5 的倍数。");
+    }
   }
-  if (idleScore % 5 !== 0) {
-    throw new Error("闲家抓分必须是 5 的倍数。");
+  if (finishType === "escape" && !escapePlayerId) {
+    throw new Error("请选择逃跑玩家。");
   }
 
   const duplicateRound = state.rounds.find(
@@ -359,8 +549,105 @@ function validateRoundInput({ roundNo, dealerId, partnerId, idleScore }) {
   }
 }
 
-function lookupRule(idleScore) {
-  const rule = NORMAL_RULES.find((entry) => idleScore >= entry.min && idleScore <= entry.max);
+function settleRound(roundInput) {
+  if (roundInput.finishType === "escape") {
+    return settleEscapeRound(roundInput);
+  }
+  if (roundInput.mode === "solo") {
+    return settleSoloScoreRound(roundInput);
+  }
+  return settleNormalScoreRound(roundInput);
+}
+
+function settleNormalScoreRound({ dealerId, partnerId, idleScore }) {
+  const idlePlayerIds = getIdlePlayerIdsForRoles({ mode: "normal", dealerId, partnerId });
+  const rule = lookupRule(NORMAL_RULES, idleScore);
+  const settlement = {};
+
+  for (const playerId of PLAYER_IDS) {
+    if (playerId === dealerId) settlement[playerId] = rule.dealerScore;
+    else if (playerId === partnerId) settlement[playerId] = rule.partnerScore;
+    else settlement[playerId] = rule.idleScorePerPlayer;
+  }
+
+  return {
+    idlePlayerIds,
+    settlement,
+    winnerSide: rule.winnerSide,
+    winnerPlayerIds:
+      rule.winnerSide === "dealer" ? [dealerId, partnerId] : structuredClone(idlePlayerIds),
+    ruleSnapshot: {
+      dealerScore: rule.dealerScore,
+      partnerScore: rule.partnerScore,
+      idleScorePerPlayer: rule.idleScorePerPlayer,
+    },
+  };
+}
+
+function settleSoloScoreRound({ dealerId, idleScore }) {
+  const idlePlayerIds = getIdlePlayerIdsForRoles({ mode: "solo", dealerId, partnerId: null });
+  const rule = lookupRule(SOLO_RULES, idleScore);
+  const settlement = {};
+
+  for (const playerId of PLAYER_IDS) {
+    settlement[playerId] = playerId === dealerId ? rule.dealerScore : rule.idleScorePerPlayer;
+  }
+
+  return {
+    idlePlayerIds,
+    settlement,
+    winnerSide: rule.winnerSide,
+    winnerPlayerIds: rule.winnerSide === "dealer" ? [dealerId] : structuredClone(idlePlayerIds),
+    ruleSnapshot: {
+      dealerScore: rule.dealerScore,
+      partnerScore: null,
+      idleScorePerPlayer: rule.idleScorePerPlayer,
+    },
+  };
+}
+
+function settleEscapeRound({ mode, dealerId, partnerId, escapePlayerId }) {
+  const idlePlayerIds = getIdlePlayerIdsForRoles({ mode, dealerId, partnerId });
+  const settlement = {};
+  const escapePenalty = mode === "solo" ? -200 : -80;
+  const othersReward = mode === "solo" ? 25 : 10;
+
+  for (const playerId of PLAYER_IDS) {
+    settlement[playerId] = playerId === escapePlayerId ? escapePenalty : othersReward;
+  }
+
+  return {
+    idlePlayerIds,
+    settlement,
+    winnerSide: null,
+    winnerPlayerIds: PLAYER_IDS.filter((playerId) => playerId !== escapePlayerId),
+    ruleSnapshot: {
+      escapePenalty,
+      othersReward,
+    },
+  };
+}
+
+function buildRoundRecord(roundInput, settlementResult) {
+  return {
+    roundNo: roundInput.roundNo,
+    mode: roundInput.mode,
+    finishType: roundInput.finishType,
+    dealerId: roundInput.dealerId,
+    partnerId: roundInput.mode === "normal" ? roundInput.partnerId : null,
+    idlePlayerIds: settlementResult.idlePlayerIds,
+    idleScore: roundInput.finishType === "score" ? roundInput.idleScore : null,
+    escapePlayerId: roundInput.finishType === "escape" ? roundInput.escapePlayerId : null,
+    winnerSide: settlementResult.winnerSide,
+    winnerPlayerIds: settlementResult.winnerPlayerIds,
+    settlement: settlementResult.settlement,
+    ruleSnapshot: settlementResult.ruleSnapshot,
+    note: "",
+  };
+}
+
+function lookupRule(ruleTable, idleScore) {
+  const rule = ruleTable.find((entry) => idleScore >= entry.min && idleScore <= entry.max);
   if (!rule) {
     throw new Error("未找到对应的结算规则，请检查闲家抓分。");
   }
@@ -368,12 +655,12 @@ function lookupRule(idleScore) {
 }
 
 function renderSettlementPreview(round) {
-  const summary = round.winnerSide === "dealer" ? "庄家方获胜" : "闲家方获胜";
   const header = `
-    <p><strong>${summary}</strong>，闲家抓分 ${round.idleScore} 分。</p>
-    <p>庄家：${escapeHtml(getPlayerLabel(round.dealerId))}，伴家：${escapeHtml(
-    getPlayerLabel(round.partnerId)
-  )}，闲家：${escapeHtml(round.idlePlayerIds.map(getPlayerLabel).join(" / "))}</p>
+    <p><strong>${escapeHtml(getRoundResultSummary(round))}</strong></p>
+    <p>模式：${escapeHtml(getModeLabel(round.mode))}，结束方式：${escapeHtml(
+    getFinishTypeLabel(round.finishType)
+  )}。</p>
+    <p>${escapeHtml(getRoundRoleLine(round))}</p>
   `;
 
   const cards = state.players
@@ -402,7 +689,7 @@ function renderOverview() {
     { label: "总局数", value: stats.totalRounds },
     { label: "当前领先", value: stats.leader?.name || "暂无" },
     { label: "最高总分", value: stats.leader ? `${stats.leader.totalScore}` : "0" },
-    { label: "规则模式", value: "一般情况" },
+    { label: "规则模式", value: "一般 / 独打 / 逃跑" },
   ];
 
   elements.overviewCards.innerHTML = cards
@@ -460,10 +747,13 @@ function renderHistoryTable() {
   elements.historyHead.innerHTML = `
     <tr>
       <th>局号</th>
+      <th>模式</th>
+      <th>结束方式</th>
       <th>庄家</th>
       <th>伴家</th>
       <th>闲家</th>
       <th>闲家抓分</th>
+      <th>逃跑玩家</th>
       <th>胜方</th>
       ${playerHeaders}
       <th>操作</th>
@@ -482,11 +772,14 @@ function renderHistoryTable() {
       (round) => `
         <tr>
           <td>${round.roundNo}</td>
+          <td>${escapeHtml(getModeLabel(round.mode))}</td>
+          <td>${escapeHtml(getFinishTypeLabel(round.finishType))}</td>
           <td>${escapeHtml(getPlayerLabel(round.dealerId))}</td>
-          <td>${escapeHtml(getPlayerLabel(round.partnerId))}</td>
+          <td>${escapeHtml(round.partnerId ? getPlayerLabel(round.partnerId) : "-")}</td>
           <td>${escapeHtml(round.idlePlayerIds.map(getPlayerLabel).join(" / "))}</td>
-          <td>${round.idleScore}</td>
-          <td>${round.winnerSide === "dealer" ? "庄家方" : "闲家方"}</td>
+          <td>${round.idleScore ?? "-"}</td>
+          <td>${escapeHtml(round.escapePlayerId ? getPlayerLabel(round.escapePlayerId) : "-")}</td>
+          <td>${escapeHtml(getRoundWinnerLabel(round))}</td>
           ${state.players
             .map(
               (player) =>
@@ -539,10 +832,15 @@ function handleHistoryAction(event) {
 function startEditRound(round) {
   editingRoundId = round.id;
   elements.roundNo.value = round.roundNo;
+  elements.modeSelect.value = round.mode;
+  elements.finishTypeSelect.value = round.finishType;
   elements.dealerSelect.value = round.dealerId;
-  syncPartnerOptions();
-  elements.partnerSelect.value = round.partnerId;
-  elements.idleScoreInput.value = round.idleScore;
+  syncPartnerOptions(round.partnerId || "");
+  elements.partnerSelect.value = round.partnerId || "";
+  elements.idleScoreInput.value = round.idleScore ?? "";
+  syncEscapePlayerOptions(round.escapePlayerId || "");
+  elements.escapePlayerSelect.value = round.escapePlayerId || "";
+  updateRoundFormVisibility();
   renderIdlePlayersPreview();
   renderSettlementPreview(round);
   updateEditingState(true);
@@ -557,8 +855,11 @@ function updateEditingState(isEditing) {
 function resetForm() {
   editingRoundId = null;
   elements.roundForm.reset();
+  elements.modeSelect.value = "normal";
+  elements.finishTypeSelect.value = "score";
   elements.roundNo.value = getNextRoundNo();
-  syncPartnerOptions();
+  elements.escapePlayerSelect.value = "";
+  updateRoundFormVisibility();
   renderIdlePlayersPreview();
   renderSettlementPlaceholder();
   updateEditingState(false);
@@ -585,23 +886,20 @@ function computeStats() {
   );
 
   for (const round of state.rounds) {
+    const winnerIds = new Set(getWinnerPlayerIds(round));
     for (const player of state.players) {
       const entry = statsMap.get(player.id);
       entry.totalScore += Number(round.settlement[player.id] || 0);
 
       if (player.id === round.dealerId) {
         entry.dealerCount += 1;
-      } else if (player.id === round.partnerId) {
+      } else if (round.partnerId && player.id === round.partnerId) {
         entry.partnerCount += 1;
       } else {
         entry.idleCount += 1;
       }
 
-      const isDealerSide = player.id === round.dealerId || player.id === round.partnerId;
-      const isWinner =
-        (isDealerSide && round.winnerSide === "dealer") ||
-        (!isDealerSide && round.winnerSide === "idle");
-      if (isWinner) {
+      if (winnerIds.has(player.id)) {
         entry.winCount += 1;
       }
     }
@@ -635,10 +933,13 @@ function exportRoundsCsv() {
 
   const header = [
     "局号",
+    "模式",
+    "结束方式",
     "庄家",
     "伴家",
     "闲家",
     "闲家抓分",
+    "逃跑玩家",
     "胜方",
     ...state.players.map((player) => player.name),
     "创建时间",
@@ -646,11 +947,14 @@ function exportRoundsCsv() {
 
   const rows = state.rounds.map((round) => [
     round.roundNo,
+    getModeLabel(round.mode),
+    getFinishTypeLabel(round.finishType),
     getPlayerLabel(round.dealerId),
-    getPlayerLabel(round.partnerId),
+    round.partnerId ? getPlayerLabel(round.partnerId) : "",
     round.idlePlayerIds.map(getPlayerLabel).join(" / "),
-    round.idleScore,
-    round.winnerSide === "dealer" ? "庄家方" : "闲家方",
+    round.idleScore ?? "",
+    round.escapePlayerId ? getPlayerLabel(round.escapePlayerId) : "",
+    getRoundWinnerLabel(round),
     ...state.players.map((player) => round.settlement[player.id]),
     formatDateTime(round.createdAt),
   ]);
@@ -691,10 +995,48 @@ function downloadFile(content, filename, mimeType) {
   URL.revokeObjectURL(url);
 }
 
-function getIdlePlayerIds(dealerId, partnerId) {
-  return state.players
-    .map((player) => player.id)
-    .filter((playerId) => playerId !== dealerId && playerId !== partnerId);
+function getIdlePlayerIdsForRoles({ mode, dealerId, partnerId }) {
+  return PLAYER_IDS.filter((playerId) => {
+    if (playerId === dealerId) return false;
+    if (mode === "normal" && playerId === partnerId) return false;
+    return true;
+  });
+}
+
+function deriveWinnerPlayerIds({ mode, finishType, dealerId, partnerId, idlePlayerIds, winnerSide, escapePlayerId }) {
+  if (finishType === "escape" && escapePlayerId) {
+    return PLAYER_IDS.filter((playerId) => playerId !== escapePlayerId);
+  }
+  if (winnerSide === "dealer") {
+    return mode === "solo" ? [dealerId] : [dealerId, partnerId];
+  }
+  if (winnerSide === "idle") {
+    return structuredClone(idlePlayerIds);
+  }
+  return [];
+}
+
+function getWinnerPlayerIds(round) {
+  const winnerIds = sanitizeWinnerPlayerIds(round.winnerPlayerIds);
+  if (winnerIds.length > 0) {
+    return winnerIds;
+  }
+
+  return deriveWinnerPlayerIds({
+    mode: round.mode === "solo" ? "solo" : "normal",
+    finishType: round.finishType === "escape" ? "escape" : "score",
+    dealerId: round.dealerId,
+    partnerId: round.partnerId || null,
+    idlePlayerIds: Array.isArray(round.idlePlayerIds)
+      ? round.idlePlayerIds.filter(isValidPlayerId)
+      : getIdlePlayerIdsForRoles({
+          mode: round.mode === "solo" ? "solo" : "normal",
+          dealerId: round.dealerId,
+          partnerId: round.partnerId || null,
+        }),
+    winnerSide: round.winnerSide,
+    escapePlayerId: round.escapePlayerId || null,
+  });
 }
 
 function getNextRoundNo() {
@@ -713,9 +1055,67 @@ function createRoundId() {
   return `round-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function getSelectedMode() {
+  return elements.modeSelect.value === "solo" ? "solo" : "normal";
+}
+
+function getSelectedFinishType() {
+  return elements.finishTypeSelect.value === "escape" ? "escape" : "score";
+}
+
+function getModeLabel(mode) {
+  return mode === "solo" ? "独打" : "一般情况";
+}
+
+function getFinishTypeLabel(finishType) {
+  return finishType === "escape" ? "逃跑" : "抓分结算";
+}
+
+function getRoundResultSummary(round) {
+  if (round.finishType === "escape") {
+    return `${getPlayerLabel(round.escapePlayerId)} 逃跑，其余四家获胜。`;
+  }
+  if (round.mode === "solo") {
+    return round.winnerSide === "dealer" ? "独打庄家获胜。" : "四名闲家获胜。";
+  }
+  return round.winnerSide === "dealer" ? "庄家方获胜。" : "闲家方获胜。";
+}
+
+function getRoundRoleLine(round) {
+  const dealerText = `庄家：${getPlayerLabel(round.dealerId)}`;
+  const idleText = `闲家：${round.idlePlayerIds.map(getPlayerLabel).join(" / ")}`;
+
+  if (round.finishType === "escape") {
+    const escapeText = `逃跑玩家：${getPlayerLabel(round.escapePlayerId)}`;
+    if (round.mode === "solo") {
+      return `${dealerText}，${idleText}，${escapeText}`;
+    }
+    return `${dealerText}，伴家：${getPlayerLabel(round.partnerId)}，${idleText}，${escapeText}`;
+  }
+
+  if (round.mode === "solo") {
+    return `${dealerText}，${idleText}，闲家抓分 ${round.idleScore} 分。`;
+  }
+  return `${dealerText}，伴家：${getPlayerLabel(round.partnerId)}，${idleText}，闲家抓分 ${round.idleScore} 分。`;
+}
+
+function getRoundWinnerLabel(round) {
+  if (round.finishType === "escape") {
+    return "其余四家";
+  }
+  if (round.mode === "solo") {
+    return round.winnerSide === "dealer" ? "独打庄家" : "四闲家";
+  }
+  return round.winnerSide === "dealer" ? "庄家方" : "闲家方";
+}
+
 function getPlayerLabel(playerId) {
   const player = state.players.find((entry) => entry.id === playerId);
   return player ? player.name : playerId;
+}
+
+function isValidPlayerId(playerId) {
+  return PLAYER_IDS.includes(playerId);
 }
 
 function formatSignedNumber(value) {

@@ -30,10 +30,13 @@ Open `http://localhost:8000` in your browser to access the application.
 - `index.html` - Main scoring interface with player management, round entry, and statistics
 - `login.html` - Authentication page (simple hardcoded credentials)
 - `games.html` - Game selection landing page
-- `app.js` - Core application logic (~1165 lines)
-- `auth.js` - Authentication module
-- `styles.css` - Application styling
-- `hongwu-wujia-score-tool-design.md` - Design documentation
+- `snake.html` - Snake mini-game page
+- `js/app.js` - Core Red Five scoring logic
+- `js/auth.js` - Authentication module
+- `js/games.js` - Game selection page behavior
+- `js/snake.js` - Snake game logic
+- `css/styles.css` - Shared application styling
+- `docs/hongwu-wujia-score-tool-design.md` - Design documentation
 
 ### Core Components
 

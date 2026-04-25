@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>贪吃蛇 - 红五游戏中心</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="auth.js"></script>
+    <script>
+      window.HWWJAuth.protectPage("login.html");
+    </script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Arcade</p>
+          <h1>贪吃蛇</h1>
+          <p class="hero-copy">
+            欢迎回来，<span id="current-username"></span>。方向键或 WASD 控制，看看你能拿多少分。
+          </p>
+        </div>
+        <div class="hero-actions">
+          <button id="back-games-btn" class="secondary-btn">返回游戏选择</button>
+          <button id="logout-btn" class="ghost-btn">退出登录</button>
+        </div>
+      </header>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>游戏面板</h2>
+            <p>吃到食物就会变长，撞墙或撞到自己会结束游戏。</p>
+          </div>
+        </div>
+
+        <div class="snake-layout">
+          <div class="snake-board-wrap">
+            <canvas id="snake-canvas" class="snake-canvas" width="480" height="480"></canvas>
+          </div>
+
+          <aside class="snake-side">
+            <div class="snake-stats">
+              <div class="snake-stat-card">
+                <span>当前分数</span>
+                <strong id="score-value">0</strong>
+              </div>
+              <div class="snake-stat-card">
+                <span>最高分</span>
+                <strong id="best-score-value">0</strong>
+              </div>
+              <div class="snake-stat-card">
+                <span>游戏状态</span>
+                <strong id="status-value">未开始</strong>
+              </div>
+              <div class="snake-stat-card">
+                <span>当前速度</span>
+                <strong id="speed-value">1x</strong>
+              </div>
+            </div>
+
+            <div class="snake-controls">
+              <button id="start-btn" class="primary-btn">开始游戏</button>
+              <button id="pause-btn" class="secondary-btn" disabled>暂停</button>
+              <button id="restart-btn" class="ghost-btn">重新开始</button>
+            </div>
+
+            <div class="empty-state">
+              <p>键盘控制：</p>
+              <p>方向键 / WASD 移动，空格键暂停或继续。分数越高，移动速度越快。</p>
+            </div>
+
+            <div class="snake-touch-panel">
+              <p class="snake-touch-title">触控方向键</p>
+              <div class="snake-touch-grid">
+                <button type="button" class="ghost-btn snake-touch-btn snake-touch-up" data-direction="up">上</button>
+                <button type="button" class="ghost-btn snake-touch-btn snake-touch-left" data-direction="left">左</button>
+                <button type="button" class="ghost-btn snake-touch-btn snake-touch-down" data-direction="down">下</button>
+                <button type="button" class="ghost-btn snake-touch-btn snake-touch-right" data-direction="right">右</button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <script src="snake.js"></script>
+  </body>
+</html>

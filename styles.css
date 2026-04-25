@@ -546,3 +546,111 @@ select {
   color: var(--muted);
   line-height: 1.6;
 }
+
+.snake-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  gap: 20px;
+  align-items: start;
+}
+
+.snake-board-wrap {
+  background: #f5f9ff;
+  border: 1px solid #dbe5f8;
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.snake-canvas {
+  display: block;
+  width: 100%;
+  max-width: 480px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  border-radius: 12px;
+  border: 1px solid #d2ddf3;
+  background: #f8fbff;
+}
+
+.snake-side {
+  display: grid;
+  gap: 14px;
+}
+
+.snake-stats {
+  display: grid;
+  gap: 10px;
+}
+
+.snake-stat-card {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f8faff;
+  border: 1px solid #d9e3f8;
+}
+
+.snake-stat-card span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.snake-stat-card strong {
+  font-size: 24px;
+}
+
+.snake-controls {
+  display: grid;
+  gap: 10px;
+}
+
+.snake-touch-panel {
+  padding: 14px;
+  border-radius: 12px;
+  background: #f8faff;
+  border: 1px solid #d9e3f8;
+}
+
+.snake-touch-title {
+  margin: 0 0 12px !important;
+  font-weight: 700;
+  color: var(--text) !important;
+}
+
+.snake-touch-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  grid-template-areas:
+    ". up ."
+    "left down right";
+}
+
+.snake-touch-btn {
+  min-height: 48px;
+  font-weight: 700;
+  touch-action: manipulation;
+}
+
+.snake-touch-up {
+  grid-area: up;
+}
+
+.snake-touch-left {
+  grid-area: left;
+}
+
+.snake-touch-down {
+  grid-area: down;
+}
+
+.snake-touch-right {
+  grid-area: right;
+}
+
+@media (max-width: 960px) {
+  .snake-layout {
+    grid-template-columns: 1fr;
+  }
+}

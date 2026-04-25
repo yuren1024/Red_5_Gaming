@@ -70,13 +70,21 @@
 
 ```
 Red_5_Gaming/
-├── index.html          # 主记分界面
-├── login.html          # 登录页面
-├── games.html          # 游戏选择页面
-├── app.js             # 核心业务逻辑
-├── auth.js            # 认证模块
-├── styles.css         # 样式文件
-└── README.md          # 项目说明
+├── index.html                        # 红五五家主记分界面
+├── login.html                        # 登录页面
+├── games.html                        # 游戏选择页面
+├── snake.html                        # 贪吃蛇页面
+├── css/
+│   └── styles.css                    # 全局样式文件
+├── js/
+│   ├── app.js                        # 红五五家核心业务逻辑
+│   ├── auth.js                       # 认证模块
+│   ├── games.js                      # 游戏选择页脚本
+│   └── snake.js                      # 贪吃蛇脚本
+├── docs/
+│   ├── README.md                     # 项目说明
+│   └── hongwu-wujia-score-tool-design.md
+└── CLAUDE.md
 ```
 
 ### 实现原理

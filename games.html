@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>游戏选择 - 红五游戏中心</title>
-    <link rel="stylesheet" href="styles.css" />
-    <script src="auth.js"></script>
+    <link rel="stylesheet" href="css/styles.css" />
+    <script src="js/auth.js"></script>
     <script>
       window.HWWJAuth.protectPage("login.html");
     </script>
@@ -50,21 +50,6 @@
       </section>
     </main>
 
-    <script>
-      document.querySelector("#current-username").textContent = window.HWWJAuth.getCurrentUsername();
-
-      document.querySelector("#enter-hongwu-btn").addEventListener("click", () => {
-        window.location.href = "index.html";
-      });
-
-      document.querySelector("#enter-snake-btn").addEventListener("click", () => {
-        window.location.href = "snake.html";
-      });
-
-      document.querySelector("#logout-btn").addEventListener("click", () => {
-        window.HWWJAuth.logout();
-        window.location.href = "login.html";
-      });
-    </script>
+    <script src="js/games.js"></script>
   </body>
 </html>

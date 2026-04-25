@@ -17,7 +17,7 @@
           <p class="eyebrow">Game Select</p>
           <h1>游戏选择</h1>
           <p class="hero-copy">
-            欢迎回来，<span id="current-username"></span>。当前先开放一个游戏入口。
+            欢迎回来，<span id="current-username"></span>。当前已开放多个游戏入口，选择一个开始吧。
           </p>
         </div>
         <div class="hero-actions">
@@ -29,7 +29,7 @@
         <div class="panel-header">
           <div>
             <h2>可选游戏</h2>
-            <p>当前版本仅提供红五五家记分工具入口。</p>
+            <p>当前版本提供红五五家记分和贪吃蛇小游戏。</p>
           </div>
         </div>
 
@@ -40,6 +40,12 @@
             <p>进入记分页面，支持一般情况、独打和逃跑的本地记分与统计。</p>
             <button id="enter-hongwu-btn" class="primary-btn">进入游戏</button>
           </article>
+          <article class="game-card">
+            <p class="eyebrow">Available Now</p>
+            <h3>贪吃蛇</h3>
+            <p>经典休闲小游戏，支持方向键控制和本地最高分记录。</p>
+            <button id="enter-snake-btn" class="primary-btn">开始游戏</button>
+          </article>
         </div>
       </section>
     </main>
@@ -49,6 +55,10 @@
 
       document.querySelector("#enter-hongwu-btn").addEventListener("click", () => {
         window.location.href = "index.html";
+      });
+
+      document.querySelector("#enter-snake-btn").addEventListener("click", () => {
+        window.location.href = "snake.html";
       });
 
       document.querySelector("#logout-btn").addEventListener("click", () => {

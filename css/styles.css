@@ -555,6 +555,8 @@ select {
 }
 
 .snake-board-wrap {
+  display: grid;
+  gap: 14px;
   background: #f5f9ff;
   border: 1px solid #dbe5f8;
   border-radius: 14px;
@@ -610,6 +612,9 @@ select {
   border-radius: 12px;
   background: #f8faff;
   border: 1px solid #d9e3f8;
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .snake-touch-title {
@@ -651,6 +656,112 @@ select {
 
 @media (max-width: 960px) {
   .snake-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .snake-board-wrap {
+    gap: 12px;
+  }
+}
+
+.racing-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 360px);
+  gap: 20px;
+  align-items: start;
+}
+
+.racing-board-wrap {
+  display: grid;
+  gap: 14px;
+  background: #f5f9ff;
+  border: 1px solid #dbe5f8;
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.racing-canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin: 0 auto;
+  border-radius: 12px;
+  border: 1px solid #d2ddf3;
+  background: #f8fbff;
+}
+
+.racing-side {
+  display: grid;
+  gap: 14px;
+}
+
+.racing-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.racing-stat-card,
+.racing-laps-card {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f8faff;
+  border: 1px solid #d9e3f8;
+}
+
+.racing-stat-card span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.racing-stat-card strong {
+  font-size: 20px;
+}
+
+.racing-controls {
+  display: grid;
+  gap: 10px;
+}
+
+.racing-laps-card h3 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.racing-lap-list {
+  display: grid;
+  gap: 10px;
+}
+
+.racing-lap-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #d9e3f8;
+}
+
+.racing-lap-item span {
+  color: var(--muted);
+}
+
+.racing-lap-item strong {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 960px) {
+  .racing-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .racing-stats {
     grid-template-columns: 1fr;
   }
 }

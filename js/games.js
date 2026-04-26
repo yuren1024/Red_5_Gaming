@@ -8,6 +8,10 @@ document.querySelector("#enter-snake-btn").addEventListener("click", () => {
   window.location.href = "snake.html";
 });
 
+document.querySelector("#enter-racing-btn").addEventListener("click", () => {
+  window.location.href = "racing.html";
+});
+
 document.querySelector("#logout-btn").addEventListener("click", () => {
   window.HWWJAuth.logout();
   window.location.href = "login.html";

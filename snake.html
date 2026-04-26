@@ -37,6 +37,16 @@
         <div class="snake-layout">
           <div class="snake-board-wrap">
             <canvas id="snake-canvas" class="snake-canvas" width="480" height="480"></canvas>
+
+            <div class="snake-touch-panel">
+              <p class="snake-touch-title">触控方向键</p>
+              <div class="snake-touch-grid">
+                <button type="button" class="ghost-btn snake-touch-btn snake-touch-up" data-direction="up">上</button>
+                <button type="button" class="ghost-btn snake-touch-btn snake-touch-left" data-direction="left">左</button>
+                <button type="button" class="ghost-btn snake-touch-btn snake-touch-down" data-direction="down">下</button>
+                <button type="button" class="ghost-btn snake-touch-btn snake-touch-right" data-direction="right">右</button>
+              </div>
+            </div>
           </div>
 
           <aside class="snake-side">
@@ -68,16 +78,6 @@
             <div class="empty-state">
               <p>键盘控制：</p>
               <p>方向键 / WASD 移动，空格键暂停或继续。分数越高，移动速度越快。</p>
-            </div>
-
-            <div class="snake-touch-panel">
-              <p class="snake-touch-title">触控方向键</p>
-              <div class="snake-touch-grid">
-                <button type="button" class="ghost-btn snake-touch-btn snake-touch-up" data-direction="up">上</button>
-                <button type="button" class="ghost-btn snake-touch-btn snake-touch-left" data-direction="left">左</button>
-                <button type="button" class="ghost-btn snake-touch-btn snake-touch-down" data-direction="down">下</button>
-                <button type="button" class="ghost-btn snake-touch-btn snake-touch-right" data-direction="right">右</button>
-              </div>
             </div>
           </aside>
         </div>

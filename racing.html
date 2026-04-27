@@ -29,8 +29,8 @@
       <section class="panel">
         <div class="panel-header">
           <div>
-            <h2>练习环道</h2>
-            <p>单人 3 圈计时赛。直线保持高速，入弯和出界都会降速，连续完成 3 圈后自动结算本局成绩。</p>
+            <h2 id="track-title">练习环道</h2>
+            <p id="track-description">单人 3 圈计时赛。直线保持高速，入弯和出界都会降速，连续完成 3 圈后自动结算本局成绩。</p>
           </div>
           <span class="badge">MVP</span>
         </div>
@@ -38,9 +38,25 @@
         <div class="racing-layout">
           <div class="racing-board-wrap">
             <canvas id="racing-canvas" class="racing-canvas" width="960" height="540"></canvas>
+
+            <div class="racing-touch-panel">
+              <p class="racing-touch-title">移动端触控按钮</p>
+              <div class="racing-touch-grid">
+                <button type="button" class="ghost-btn racing-touch-btn racing-touch-up" data-control="up">加速</button>
+                <button type="button" class="ghost-btn racing-touch-btn racing-touch-left" data-control="left">左转</button>
+                <button type="button" class="ghost-btn racing-touch-btn racing-touch-down" data-control="down">刹车</button>
+                <button type="button" class="ghost-btn racing-touch-btn racing-touch-right" data-control="right">右转</button>
+              </div>
+            </div>
           </div>
 
           <aside class="racing-side">
+            <div class="racing-track-selector">
+              <h3>地图选择</h3>
+              <p>当前已提供基础环道、复杂蛇形赛道和街道赛风格地图，可直接切换尝试不同走线节奏。</p>
+              <div id="track-select-list" class="racing-track-list"></div>
+            </div>
+
             <div class="racing-stats">
               <div class="racing-stat-card">
                 <span>比赛状态</span>
@@ -104,11 +120,56 @@
                 </div>
               </div>
             </div>
+
+            <section id="result-panel" class="racing-result-panel hidden">
+              <div class="racing-result-header">
+                <div>
+                  <p class="eyebrow">Race Result</p>
+                  <h3>本局结果</h3>
+                </div>
+                <span id="result-badge" class="badge">完赛</span>
+              </div>
+
+              <div class="racing-result-grid">
+                <div class="racing-result-card">
+                  <span>总用时</span>
+                  <strong id="result-total-time">--:--.---</strong>
+                </div>
+                <div class="racing-result-card">
+                  <span>最快圈</span>
+                  <strong id="result-best-lap">--:--.---</strong>
+                </div>
+                <div class="racing-result-card">
+                  <span>上一圈</span>
+                  <strong id="result-last-lap">--:--.---</strong>
+                </div>
+                <div class="racing-result-card">
+                  <span>成绩结论</span>
+                  <strong id="result-summary">等待完赛</strong>
+                </div>
+              </div>
+
+              <div id="result-lap-times-list" class="racing-lap-list">
+                <div class="racing-lap-item">
+                  <span>Lap 1</span>
+                  <strong>--:--.---</strong>
+                </div>
+                <div class="racing-lap-item">
+                  <span>Lap 2</span>
+                  <strong>--:--.---</strong>
+                </div>
+                <div class="racing-lap-item">
+                  <span>Lap 3</span>
+                  <strong>--:--.---</strong>
+                </div>
+              </div>
+            </section>
           </aside>
         </div>
       </section>
     </main>
 
+    <script src="js/racing-tracks.js"></script>
     <script src="js/racing.js"></script>
   </body>
 </html>

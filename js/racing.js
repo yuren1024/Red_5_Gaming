@@ -8,17 +8,13 @@ const STATE = {
   FINISHED: "finished",
 };
 
-const TRACK = {
-  id: "training-loop",
-  name: "练习环道",
-  lapTarget: 3,
-  centerX: 480,
-  centerY: 270,
-  straightHalf: 230,
-  radius: 130,
-  width: 72,
-  startLineX: 480,
-};
+const TRACKS = window.HWWJRacingTracks;
+
+if (!Array.isArray(TRACKS) || TRACKS.length === 0) {
+  throw new Error("Racing tracks config missing. Please load js/racing-tracks.js before js/racing.js.");
+}
+
+const TRACKS_BY_ID = Object.fromEntries(TRACKS.map((track) => [track.id, track]));
 
 const PHYSICS = {
   maxSpeed: 290,
@@ -39,6 +35,9 @@ const canvas = document.querySelector("#racing-canvas");
 const ctx = canvas.getContext("2d");
 
 const currentUsernameEl = document.querySelector("#current-username");
+const trackTitleEl = document.querySelector("#track-title");
+const trackDescriptionEl = document.querySelector("#track-description");
+const trackSelectListEl = document.querySelector("#track-select-list");
 const statusEl = document.querySelector("#race-status-value");
 const lapEl = document.querySelector("#lap-value");
 const currentLapTimeEl = document.querySelector("#current-lap-time-value");
@@ -48,12 +47,20 @@ const bestLapEl = document.querySelector("#best-lap-time-value");
 const speedStateEl = document.querySelector("#speed-state-value");
 const messageEl = document.querySelector("#message-value");
 const lapTimesListEl = document.querySelector("#lap-times-list");
+const resultLapTimesListEl = document.querySelector("#result-lap-times-list");
+const resultPanelEl = document.querySelector("#result-panel");
+const resultBadgeEl = document.querySelector("#result-badge");
+const resultTotalTimeEl = document.querySelector("#result-total-time");
+const resultBestLapEl = document.querySelector("#result-best-lap");
+const resultLastLapEl = document.querySelector("#result-last-lap");
+const resultSummaryEl = document.querySelector("#result-summary");
 
 const startBtn = document.querySelector("#start-btn");
 const pauseBtn = document.querySelector("#pause-btn");
 const restartBtn = document.querySelector("#restart-btn");
 const backBtn = document.querySelector("#back-games-btn");
 const logoutBtn = document.querySelector("#logout-btn");
+const touchButtons = document.querySelectorAll(".racing-touch-btn");
 
 const input = {
   up: false,
@@ -77,22 +84,27 @@ const runtime = {
   flashMessageMs: 0,
   hasNewRecord: false,
   offTrackMs: 0,
-  bestLapMs: readBestLap(),
+  activeTrackId: TRACKS[0].id,
+  bestLapMs: null,
 };
 
+let activeTrack = TRACKS_BY_ID[runtime.activeTrackId];
+
 const car = {
-  x: TRACK.startLineX + 56,
-  y: TRACK.centerY - TRACK.radius,
+  x: 0,
+  y: 0,
   heading: 0,
   speed: 0,
   inTrack: true,
   inCurveZone: false,
-  lastSafeX: TRACK.startLineX + 56,
-  lastSafeY: TRACK.centerY - TRACK.radius,
+  progress: 0,
+  distanceToCenter: 0,
+  lastSafeX: 0,
+  lastSafeY: 0,
   lastSafeHeading: 0,
 };
 
-const geometry = createTrackGeometry();
+let geometry = createTrackGeometry(activeTrack);
 
 let animationFrameId = null;
 let lastFrameAt = performance.now();
@@ -101,9 +113,13 @@ init();
 
 function init() {
   currentUsernameEl.textContent = window.HWWJAuth.getCurrentUsername();
+  applyTrackMetadata();
+  renderTrackButtons();
+  resetRaceState(STATE.IDLE, `已选择 ${activeTrack.name}`);
   bindEvents();
   syncHud();
   renderLapTimes();
+  syncResultPanel();
   render();
   animationFrameId = window.requestAnimationFrame(frame);
 }
@@ -112,6 +128,13 @@ function bindEvents() {
   startBtn.addEventListener("click", startRace);
   pauseBtn.addEventListener("click", togglePause);
   restartBtn.addEventListener("click", restartRace);
+
+  trackSelectListEl.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-track-id]");
+    if (!button) return;
+    if (button.disabled) return;
+    setActiveTrack(button.dataset.trackId);
+  });
 
   backBtn.addEventListener("click", () => {
     window.location.href = "games.html";
@@ -140,6 +163,24 @@ function bindEvents() {
     if (handled) {
       event.preventDefault();
     }
+  });
+
+  touchButtons.forEach((button) => {
+    const control = button.dataset.control;
+    if (!control) return;
+
+    const release = () => {
+      setTouchInput(control, false);
+    };
+
+    button.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      setTouchInput(control, true);
+    });
+    button.addEventListener("pointerup", release);
+    button.addEventListener("pointercancel", release);
+    button.addEventListener("pointerleave", release);
+    button.addEventListener("pointerout", release);
   });
 }
 
@@ -183,6 +224,7 @@ function update(dt) {
   const previous = {
     x: car.x,
     y: car.y,
+    progress: car.progress,
   };
 
   updateCarPhysics(dt);
@@ -194,8 +236,6 @@ function update(dt) {
 function updateCarPhysics(dt) {
   const steeringInput = Number(input.right) - Number(input.left);
   const isTurning = steeringInput !== 0;
-
-  car.inCurveZone = isInCurveZone(car.x);
 
   let targetSpeed = 0;
   if (input.down) {
@@ -225,10 +265,14 @@ function updateCarPhysics(dt) {
   car.x += Math.cos(car.heading) * car.speed * dt;
   car.y += Math.sin(car.heading) * car.speed * dt;
 
+  syncCarTrackSample();
+
+  const isOffTrack = car.distanceToCenter > activeTrack.width / 2;
+
   runtime.speedState = "滑行";
   if (car.speed <= 1) {
     runtime.speedState = "待命";
-  } else if (!car.inTrack) {
+  } else if (isOffTrack) {
     runtime.speedState = "越界减速";
   } else if (input.down) {
     runtime.speedState = "刹车修线";
@@ -240,7 +284,7 @@ function updateCarPhysics(dt) {
 }
 
 function checkTrackState(dt) {
-  const inTrackNow = isPointInTrack(car.x, car.y);
+  const inTrackNow = car.distanceToCenter <= activeTrack.width / 2;
   car.inTrack = inTrackNow;
 
   if (inTrackNow) {
@@ -258,56 +302,29 @@ function checkTrackState(dt) {
 }
 
 function checkCheckpoints(previous, current) {
-  const topY = TRACK.centerY - TRACK.radius;
-  const bottomY = TRACK.centerY + TRACK.radius;
-  const halfWidth = TRACK.width / 2;
-  const leftCenterX = TRACK.centerX - TRACK.straightHalf;
-  const rightCenterX = TRACK.centerX + TRACK.straightHalf;
+  if (!current.inTrack) return;
 
+  const checkpointProgresses = activeTrack.checkpoints;
+  const nextCheckpointProgress = checkpointProgresses[runtime.checkpointIndex];
   if (
-    runtime.checkpointIndex === 0 &&
-    previous.y < TRACK.centerY &&
-    current.y >= TRACK.centerY &&
-    current.x > rightCenterX
+    Number.isFinite(nextCheckpointProgress) &&
+    crossedProgress(previous.progress, current.progress, nextCheckpointProgress)
   ) {
-    runtime.checkpointIndex = 1;
-    flashMessage("通过 CP1");
+    runtime.checkpointIndex += 1;
+    flashMessage(`通过 CP${runtime.checkpointIndex}`);
     return;
   }
 
   if (
-    runtime.checkpointIndex === 1 &&
-    previous.x > TRACK.centerX &&
-    current.x <= TRACK.centerX &&
-    Math.abs(current.y - bottomY) <= halfWidth + 8
-  ) {
-    runtime.checkpointIndex = 2;
-    flashMessage("通过 CP2");
-    return;
-  }
-
-  if (
-    runtime.checkpointIndex === 2 &&
-    previous.y > TRACK.centerY &&
-    current.y <= TRACK.centerY &&
-    current.x < leftCenterX
-  ) {
-    runtime.checkpointIndex = 3;
-    flashMessage("通过 CP3");
-    return;
-  }
-
-  if (
-    previous.x < TRACK.startLineX &&
-    current.x >= TRACK.startLineX &&
-    Math.abs(current.y - topY) <= halfWidth + 8
+    runtime.checkpointIndex === checkpointProgresses.length &&
+    crossedStartLine(previous.progress, current.progress)
   ) {
     finishLapIfEligible();
   }
 }
 
 function finishLapIfEligible() {
-  if (runtime.checkpointIndex !== 3) return;
+  if (runtime.checkpointIndex !== activeTrack.checkpoints.length) return;
   if (runtime.currentLapTimeMs < PHYSICS.minValidLapMs) return;
 
   const lapTimeMs = Math.round(runtime.currentLapTimeMs);
@@ -330,7 +347,7 @@ function finishLapIfEligible() {
   runtime.checkpointIndex = 0;
   renderLapTimes();
 
-  if (runtime.lapTimes.length >= TRACK.lapTarget) {
+  if (runtime.lapTimes.length >= activeTrack.lapTarget) {
     finishRace();
     return;
   }
@@ -348,7 +365,7 @@ function finishRace() {
 }
 
 function startRace() {
-  resetRace();
+  resetRaceState(STATE.COUNTDOWN, "准备开始");
   runtime.state = STATE.COUNTDOWN;
   runtime.message = "准备开始";
   syncHud();
@@ -358,8 +375,8 @@ function restartRace() {
   startRace();
 }
 
-function resetRace() {
-  runtime.state = STATE.COUNTDOWN;
+function resetRaceState(nextState = STATE.IDLE, message = "点击开始比赛") {
+  runtime.state = nextState;
   runtime.countdownMsRemaining = PHYSICS.countdownMs;
   runtime.currentLap = 1;
   runtime.lapTimes = [];
@@ -368,18 +385,22 @@ function resetRace() {
   runtime.lastLapTimeMs = null;
   runtime.sessionBestLapMs = null;
   runtime.checkpointIndex = 0;
-  runtime.speedState = "等待起跑";
-  runtime.message = "准备开始";
+  runtime.speedState = nextState === STATE.COUNTDOWN ? "等待起跑" : "待命";
+  runtime.message = message;
   runtime.flashMessageMs = 0;
   runtime.hasNewRecord = false;
   runtime.offTrackMs = 0;
+  runtime.bestLapMs = readBestLap();
 
-  car.x = TRACK.startLineX + 56;
-  car.y = TRACK.centerY - TRACK.radius;
-  car.heading = 0;
+  const startPose = getTrackStartPose();
+  car.x = startPose.x;
+  car.y = startPose.y;
+  car.heading = startPose.heading;
   car.speed = 0;
   car.inTrack = true;
-  car.inCurveZone = false;
+  car.inCurveZone = isInCurveZone(startPose.progress);
+  car.progress = startPose.progress;
+  car.distanceToCenter = 0;
   car.lastSafeX = car.x;
   car.lastSafeY = car.y;
   car.lastSafeHeading = car.heading;
@@ -390,6 +411,7 @@ function resetRace() {
   input.right = false;
 
   renderLapTimes();
+  syncResultPanel();
 }
 
 function togglePause() {
@@ -410,6 +432,7 @@ function respawnCar() {
   car.heading = car.lastSafeHeading;
   car.speed = 0;
   car.inTrack = true;
+  syncCarTrackSample();
   runtime.offTrackMs = 0;
   runtime.currentLapTimeMs += PHYSICS.respawnPenaltyMs;
   runtime.totalTimeMs += PHYSICS.respawnPenaltyMs;
@@ -423,7 +446,7 @@ function flashMessage(text, durationMs = 1100) {
 
 function syncHud() {
   statusEl.textContent = toStatusLabel(runtime.state);
-  lapEl.textContent = `${Math.min(runtime.currentLap, TRACK.lapTarget)} / ${TRACK.lapTarget}`;
+  lapEl.textContent = `${Math.min(runtime.currentLap, activeTrack.lapTarget)} / ${activeTrack.lapTarget}`;
   currentLapTimeEl.textContent = formatDuration(runtime.currentLapTimeMs);
   lastLapTimeEl.textContent = formatNullableDuration(runtime.lastLapTimeMs);
   sessionBestLapEl.textContent = formatNullableDuration(runtime.sessionBestLapMs);
@@ -435,12 +458,20 @@ function syncHud() {
   pauseBtn.disabled = !canPause;
   pauseBtn.textContent = runtime.state === STATE.PAUSED ? "继续" : "暂停";
   startBtn.disabled = runtime.state === STATE.COUNTDOWN || runtime.state === STATE.RUNNING || runtime.state === STATE.PAUSED;
+  renderTrackButtons();
+  syncResultPanel();
 }
 
 function renderLapTimes() {
+  const markup = buildLapTimesMarkup(runtime.lapTimes);
+  lapTimesListEl.innerHTML = markup;
+  resultLapTimesListEl.innerHTML = markup;
+}
+
+function buildLapTimesMarkup(lapTimes) {
   const items = [];
-  for (let index = 0; index < TRACK.lapTarget; index += 1) {
-    const time = runtime.lapTimes[index];
+  for (let index = 0; index < activeTrack.lapTarget; index += 1) {
+    const time = lapTimes[index];
     items.push(`
       <div class="racing-lap-item">
         <span>Lap ${index + 1}</span>
@@ -448,7 +479,57 @@ function renderLapTimes() {
       </div>
     `);
   }
-  lapTimesListEl.innerHTML = items.join("");
+  return items.join("");
+}
+
+function syncResultPanel() {
+  const isFinished = runtime.state === STATE.FINISHED;
+  resultPanelEl.classList.toggle("hidden", !isFinished);
+  resultBadgeEl.textContent = runtime.hasNewRecord ? "New Record" : "完赛";
+  resultTotalTimeEl.textContent = formatDuration(runtime.totalTimeMs);
+  resultBestLapEl.textContent = formatNullableDuration(runtime.sessionBestLapMs);
+  resultLastLapEl.textContent = formatNullableDuration(runtime.lastLapTimeMs);
+  resultSummaryEl.textContent = runtime.hasNewRecord ? "刷新本地最佳圈" : "顺利完成 3 圈";
+}
+
+function applyTrackMetadata() {
+  trackTitleEl.textContent = activeTrack.name;
+  trackDescriptionEl.textContent = activeTrack.description;
+}
+
+function renderTrackButtons() {
+  const disableSwitch = runtime.state === STATE.COUNTDOWN || runtime.state === STATE.RUNNING || runtime.state === STATE.PAUSED;
+  if (trackSelectListEl.children.length !== TRACKS.length) {
+    trackSelectListEl.innerHTML = TRACKS.map((track) => `
+      <button
+        type="button"
+        class="racing-track-btn"
+        data-track-id="${track.id}"
+      >
+        <strong>${track.name}</strong>
+        <span>${track.description}</span>
+      </button>
+    `).join("");
+  }
+
+  trackSelectListEl.querySelectorAll("[data-track-id]").forEach((button) => {
+    const isActive = button.dataset.trackId === activeTrack.id;
+    button.classList.toggle("active", isActive);
+    button.disabled = disableSwitch;
+  });
+}
+
+function setActiveTrack(trackId) {
+  const nextTrack = TRACKS_BY_ID[trackId];
+  if (!nextTrack || nextTrack.id === activeTrack.id) return;
+
+  activeTrack = nextTrack;
+  runtime.activeTrackId = nextTrack.id;
+  geometry = createTrackGeometry(activeTrack);
+  applyTrackMetadata();
+  resetRaceState(STATE.IDLE, `已切换至 ${activeTrack.name}`);
+  syncHud();
+  render();
 }
 
 function render() {
@@ -475,20 +556,20 @@ function drawBackground() {
 }
 
 function drawTrack() {
-  ctx.fillStyle = "#404858";
-  ctx.fill(geometry.outerPath);
-
-  ctx.fillStyle = "#7dc47f";
-  ctx.fill(geometry.innerPath);
-
-  ctx.strokeStyle = "#f5f7ff";
-  ctx.lineWidth = 4;
-  ctx.stroke(geometry.outerPath);
-  ctx.stroke(geometry.innerPath);
-
   ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  ctx.strokeStyle = "#18212f";
+  ctx.lineWidth = activeTrack.width + 14;
+  ctx.stroke(geometry.centerPath);
+
+  ctx.strokeStyle = activeTrack.surfaceColor;
+  ctx.lineWidth = activeTrack.width;
+  ctx.stroke(geometry.centerPath);
+
   ctx.setLineDash([16, 14]);
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+  ctx.strokeStyle = activeTrack.centerLineColor;
   ctx.lineWidth = 2;
   ctx.stroke(geometry.centerPath);
   ctx.restore();
@@ -497,56 +578,35 @@ function drawTrack() {
 }
 
 function drawStartFinishLine() {
-  const topY = TRACK.centerY - TRACK.radius;
-  const halfWidth = TRACK.width / 2;
-  const x = TRACK.startLineX;
+  const { center, normal } = geometry.startGate;
   const cell = 8;
-  const rows = Math.ceil((TRACK.width + 4) / cell);
+  const rows = Math.ceil((activeTrack.width + 4) / cell);
+  const normalAngle = Math.atan2(normal.y, normal.x);
+
+  ctx.save();
+  ctx.translate(center.x, center.y);
+  ctx.rotate(normalAngle);
 
   for (let index = 0; index < rows; index += 1) {
     ctx.fillStyle = index % 2 === 0 ? "#ffffff" : "#202636";
-    ctx.fillRect(x - 10, topY - halfWidth + index * cell, 20, cell);
+    ctx.fillRect(-10, -activeTrack.width / 2 + index * cell, 20, cell);
   }
+  ctx.restore();
 }
 
 function drawCheckpoints() {
-  const topY = TRACK.centerY - TRACK.radius;
-  const bottomY = TRACK.centerY + TRACK.radius;
-  const outerRadius = TRACK.radius + TRACK.width / 2;
-  const innerRadius = TRACK.radius - TRACK.width / 2;
-  const leftCenterX = TRACK.centerX - TRACK.straightHalf;
-  const rightCenterX = TRACK.centerX + TRACK.straightHalf;
-
   ctx.save();
   ctx.lineWidth = 5;
   ctx.setLineDash([10, 10]);
 
+  geometry.checkpointGates.forEach((gate, index) => {
+    drawCheckpointLine(gate.x1, gate.y1, gate.x2, gate.y2, runtime.checkpointIndex >= index + 1);
+  });
   drawCheckpointLine(
-    rightCenterX + innerRadius,
-    TRACK.centerY,
-    rightCenterX + outerRadius,
-    TRACK.centerY,
-    runtime.checkpointIndex >= 1
-  );
-  drawCheckpointLine(
-    TRACK.centerX,
-    bottomY - TRACK.width / 2,
-    TRACK.centerX,
-    bottomY + TRACK.width / 2,
-    runtime.checkpointIndex >= 2
-  );
-  drawCheckpointLine(
-    leftCenterX - innerRadius,
-    TRACK.centerY,
-    leftCenterX - outerRadius,
-    TRACK.centerY,
-    runtime.checkpointIndex >= 3
-  );
-  drawCheckpointLine(
-    TRACK.startLineX,
-    topY - TRACK.width / 2,
-    TRACK.startLineX,
-    topY + TRACK.width / 2,
+    geometry.startGate.x1,
+    geometry.startGate.y1,
+    geometry.startGate.x2,
+    geometry.startGate.y2,
     false,
     "#5fb1ff"
   );
@@ -619,58 +679,195 @@ function drawCenteredOverlay(title, subtitle = "") {
   ctx.restore();
 }
 
-function createTrackGeometry() {
-  const outerRadius = TRACK.radius + TRACK.width / 2;
-  const innerRadius = TRACK.radius - TRACK.width / 2;
-  const leftCenterX = TRACK.centerX - TRACK.straightHalf;
-  const rightCenterX = TRACK.centerX + TRACK.straightHalf;
+function createTrackGeometry(track) {
+  const path = createTrackPath(track.points);
+  const segments = [];
+  let totalLength = 0;
+
+  for (let index = 0; index < track.points.length; index += 1) {
+    const start = track.points[index];
+    const end = track.points[(index + 1) % track.points.length];
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const length = Math.hypot(dx, dy);
+    const tangent = length === 0 ? { x: 1, y: 0 } : { x: dx / length, y: dy / length };
+
+    segments.push({
+      start,
+      end,
+      dx,
+      dy,
+      length,
+      tangent,
+      startLength: totalLength,
+      endLength: totalLength + length,
+    });
+    totalLength += length;
+  }
 
   return {
-    outerPath: createStadiumPath(leftCenterX, rightCenterX, TRACK.centerY, outerRadius),
-    innerPath: createStadiumPath(leftCenterX, rightCenterX, TRACK.centerY, innerRadius),
-    centerPath: createStadiumPath(leftCenterX, rightCenterX, TRACK.centerY, TRACK.radius),
+    centerPath: path,
+    segments,
+    totalLength,
+    checkpointGates: track.checkpoints.map((progress) => createGateAtProgress(progress, segments, totalLength, track.width)),
+    startGate: createGateAtProgress(0, segments, totalLength, track.width),
   };
 }
 
-function createStadiumPath(leftCenterX, rightCenterX, centerY, radius) {
+function createTrackPath(points) {
   const path = new Path2D();
-  path.moveTo(leftCenterX, centerY - radius);
-  path.lineTo(rightCenterX, centerY - radius);
-  path.arc(rightCenterX, centerY, radius, -Math.PI / 2, Math.PI / 2, false);
-  path.lineTo(leftCenterX, centerY + radius);
-  path.arc(leftCenterX, centerY, radius, Math.PI / 2, (Math.PI * 3) / 2, false);
+  path.moveTo(points[0].x, points[0].y);
+  for (let index = 1; index < points.length; index += 1) {
+    path.lineTo(points[index].x, points[index].y);
+  }
   path.closePath();
   return path;
 }
 
 function isPointInTrack(x, y) {
-  return ctx.isPointInPath(geometry.outerPath, x, y) && !ctx.isPointInPath(geometry.innerPath, x, y);
+  return getNearestTrackSample(x, y).distance <= activeTrack.width / 2;
 }
 
-function isInCurveZone(x) {
-  const leftCenterX = TRACK.centerX - TRACK.straightHalf;
-  const rightCenterX = TRACK.centerX + TRACK.straightHalf;
-  return x <= leftCenterX || x >= rightCenterX;
+function isInCurveZone(progress) {
+  return activeTrack.curveRanges.some(([start, end]) => {
+    if (start <= end) {
+      return progress >= start && progress <= end;
+    }
+    return progress >= start || progress <= end;
+  });
+}
+
+function syncCarTrackSample() {
+  const sample = getNearestTrackSample(car.x, car.y);
+  car.progress = sample.progress;
+  car.distanceToCenter = sample.distance;
+  car.inCurveZone = isInCurveZone(sample.progress);
+}
+
+function getTrackStartPose() {
+  const startSample = sampleTrackAtProgress(0);
+  return {
+    x: startSample.x,
+    y: startSample.y,
+    heading: Math.atan2(startSample.tangent.y, startSample.tangent.x),
+    progress: 0,
+  };
+}
+
+function createGateAtProgress(progress, segments, totalLength, width) {
+  const sample = sampleTrackAtProgress(progress, segments, totalLength);
+  const halfWidth = width / 2 + 8;
+  return {
+    progress,
+    center: { x: sample.x, y: sample.y },
+    normal: sample.normal,
+    x1: sample.x + sample.normal.x * halfWidth,
+    y1: sample.y + sample.normal.y * halfWidth,
+    x2: sample.x - sample.normal.x * halfWidth,
+    y2: sample.y - sample.normal.y * halfWidth,
+  };
+}
+
+function sampleTrackAtProgress(progress, segments = geometry.segments, totalLength = geometry.totalLength) {
+  const normalized = normalizeProgress(progress);
+  const targetLength = normalized * totalLength;
+
+  for (const segment of segments) {
+    if (targetLength <= segment.endLength) {
+      const localLength = targetLength - segment.startLength;
+      const ratio = segment.length === 0 ? 0 : localLength / segment.length;
+      const x = segment.start.x + segment.dx * ratio;
+      const y = segment.start.y + segment.dy * ratio;
+      return {
+        x,
+        y,
+        tangent: segment.tangent,
+        normal: { x: -segment.tangent.y, y: segment.tangent.x },
+      };
+    }
+  }
+
+  const lastSegment = segments[segments.length - 1];
+  return {
+    x: lastSegment.end.x,
+    y: lastSegment.end.y,
+    tangent: lastSegment.tangent,
+    normal: { x: -lastSegment.tangent.y, y: lastSegment.tangent.x },
+  };
+}
+
+function getNearestTrackSample(x, y) {
+  let bestSample = null;
+
+  for (const segment of geometry.segments) {
+    const projection = projectPointToSegment(x, y, segment);
+    if (!bestSample || projection.distance < bestSample.distance) {
+      bestSample = projection;
+    }
+  }
+
+  return bestSample;
+}
+
+function projectPointToSegment(x, y, segment) {
+  const lengthSquared = segment.length * segment.length || 1;
+  const rawT = ((x - segment.start.x) * segment.dx + (y - segment.start.y) * segment.dy) / lengthSquared;
+  const t = clamp(rawT, 0, 1);
+  const projectedX = segment.start.x + segment.dx * t;
+  const projectedY = segment.start.y + segment.dy * t;
+  const distance = Math.hypot(x - projectedX, y - projectedY);
+
+  return {
+    x: projectedX,
+    y: projectedY,
+    distance,
+    progress: normalizeProgress((segment.startLength + segment.length * t) / geometry.totalLength),
+    tangent: segment.tangent,
+  };
+}
+
+function crossedProgress(previousProgress, currentProgress, targetProgress) {
+  const delta = currentProgress - previousProgress;
+  if (delta >= 0 && delta < 0.4) {
+    return targetProgress > previousProgress && targetProgress <= currentProgress;
+  }
+  if (delta < -0.6) {
+    return targetProgress > previousProgress || targetProgress <= currentProgress;
+  }
+  return false;
+}
+
+function crossedStartLine(previousProgress, currentProgress) {
+  return previousProgress - currentProgress > 0.6;
+}
+
+function normalizeProgress(progress) {
+  if (progress >= 1 || progress < 0) {
+    return ((progress % 1) + 1) % 1;
+  }
+  return progress;
 }
 
 function setInput(key, pressed) {
   if (key === "ArrowUp") {
-    input.up = pressed;
-    return true;
+    return setTouchInput("up", pressed);
   }
   if (key === "ArrowDown") {
-    input.down = pressed;
-    return true;
+    return setTouchInput("down", pressed);
   }
   if (key === "ArrowLeft") {
-    input.left = pressed;
-    return true;
+    return setTouchInput("left", pressed);
   }
   if (key === "ArrowRight") {
-    input.right = pressed;
-    return true;
+    return setTouchInput("right", pressed);
   }
   return false;
+}
+
+function setTouchInput(control, pressed) {
+  if (!(control in input)) return false;
+  input[control] = pressed;
+  return true;
 }
 
 function toStatusLabel(state) {
@@ -697,20 +894,21 @@ function formatDuration(value) {
 
 function readBestLap() {
   const storage = readStorage();
-  const value = storage.bestLapByTrack?.[TRACK.id];
+  const value = storage.bestLapByTrack?.[activeTrack.id];
   return Number.isFinite(value) ? value : null;
 }
 
 function saveBestLap(bestLapMs) {
   const storage = readStorage();
-  storage.bestLapByTrack[TRACK.id] = bestLapMs;
+  storage.bestLapByTrack[activeTrack.id] = bestLapMs;
   writeStorage(storage);
 }
 
 function persistRaceResult() {
   const storage = readStorage();
   storage.recentResults.unshift({
-    trackId: TRACK.id,
+    trackId: activeTrack.id,
+    trackName: activeTrack.name,
     lapTimes: [...runtime.lapTimes],
     totalTimeMs: Math.round(runtime.totalTimeMs),
     playedAt: new Date().toISOString(),

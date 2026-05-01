@@ -4,48 +4,54 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Red_5_Gaming is a client-side web application for scoring "红五五家" (Red Five Five-Person), a Chinese card game. The app runs entirely in the browser with no backend server, using localStorage for data persistence.
+Red_5_Gaming is a browser-based web application for scoring "红五五家" (Red Five Five-Person), plus a small set of mini-games. The frontend remains static HTML/CSS/JS, and a lightweight Node.js server now handles authentication and serves protected pages.
 
 ## Development Setup
 
-This is a static web application with no build process. To run:
+The frontend has no build process. To run the application:
 
 ```bash
-# Serve the files using any static file server
-# Using Python 3:
-python -m http.server 8000
+# Start the auth server
+cd server
+npm install
+cp .env.example .env
 
-# Using Node.js http-server:
-npx http-server .
+# Generate a password hash if needed
+npm run hash-password -- "your-password"
 
-# Or simply open index.html directly in a browser (some features may be limited)
+# Start the app
+npm start
 ```
 
-Open `http://localhost:8000` in your browser to access the application.
+Open `http://localhost:3000/login.html` in your browser to access the application.
 
 ## Application Architecture
 
 ### File Structure
 
 - `index.html` - Main scoring interface with player management, round entry, and statistics
-- `login.html` - Authentication page (simple hardcoded credentials)
+- `login.html` - Authentication page
 - `games.html` - Game selection landing page
 - `snake.html` - Snake mini-game page
 - `js/app.js` - Core Red Five scoring logic
-- `js/auth.js` - Authentication module
+- `js/auth.js` - Frontend authentication API wrapper
 - `js/games.js` - Game selection page behavior
 - `js/snake.js` - Snake game logic
 - `css/styles.css` - Shared application styling
+- `server/index.js` - Node.js auth server and page routing
+- `server/.env.example` - Example auth server configuration
 - `docs/hongwu-wujia-score-tool-design.md` - Design documentation
 
 ### Core Components
 
 **Authentication (`auth.js`)**
-- Simple localStorage-based authentication
-- Default credentials: username "于人", password "123456"
-- Provides page protection and redirect utilities
+
+- Frontend wrapper around backend auth APIs
+- Uses server-side session cookies instead of frontend-stored credentials
+- Provides login, logout, session lookup, and redirect utilities
 
 **Main Application (`app.js`)**
+
 - State management with localStorage persistence
 - Rule-based scoring system with two rule tables: `NORMAL_RULES` and `SOLO_RULES`
 - Player management (5 fixed slots with IDs A-E, renameable)
@@ -56,6 +62,7 @@ Open `http://localhost:8000` in your browser to access the application.
 ### Data Model
 
 **Application State** (stored in `localStorage` key `"hwwj.appState.v1"`):
+
 ```javascript
 {
   appVersion: "v2",
@@ -124,6 +131,7 @@ Rule tables map idle scores to point values for each player role.
 ## Testing Changes
 
 When making changes:
+
 1. Refresh the page to load updated JavaScript
 2. Test form validation for all mode combinations
 3. Verify scoring calculations against the rule tables

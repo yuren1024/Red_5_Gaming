@@ -1,0 +1,21 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "Auth and static server for Red_5_Gaming",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "hash-password": "node scripts/hash-password.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.4.1",
+    "express-session": "^1.19.0"
+  }
+}

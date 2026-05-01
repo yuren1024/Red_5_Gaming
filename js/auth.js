@@ -1,82 +1,170 @@
-const HWWJ_AUTH_STORAGE_KEY = "hwwj.simpleAuth";
-const HWWJ_DEFAULT_ACCOUNT = {
-  username: "于人",
-  password: "123456",
-};
+const HWWJAuth = (() => {
+  let cachedSession = null;
 
-function getStoredAuth() {
-  try {
-    const raw = window.localStorage.getItem(HWWJ_AUTH_STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return null;
-    return parsed;
-  } catch (error) {
-    return null;
-  }
-}
+  async function login(username, password) {
+    const normalizedUsername = String(username ?? "").trim();
+    const normalizedPassword = String(password ?? "");
 
-function isLoggedIn() {
-  const auth = getStoredAuth();
-  return Boolean(auth?.username);
-}
+    let response;
+    let data;
+    try {
+      ({ response, data } = await requestJson("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({
+          username: normalizedUsername,
+          password: normalizedPassword,
+        }),
+      }));
+    } catch (error) {
+      cachedSession = unauthenticatedSession();
+      return {
+        ok: false,
+        message: "登录服务暂时不可用，请稍后重试。",
+      };
+    }
 
-function login(username, password) {
-  const normalizedUsername = String(username ?? "").trim();
-  const normalizedPassword = String(password ?? "");
-  const isValid =
-    normalizedUsername === HWWJ_DEFAULT_ACCOUNT.username &&
-    normalizedPassword === HWWJ_DEFAULT_ACCOUNT.password;
+    if (!response.ok) {
+      cachedSession = unauthenticatedSession();
+      return {
+        ok: false,
+        message: data?.message || "登录失败，请检查账号或密码。",
+      };
+    }
 
-  if (!isValid) {
+    cachedSession = normalizeSessionPayload(data);
     return {
-      ok: false,
-      message: "账号或密码错误，请使用默认账号登录。",
+      ok: true,
+      user: cachedSession.user,
     };
   }
 
-  window.localStorage.setItem(
-    HWWJ_AUTH_STORAGE_KEY,
-    JSON.stringify({
-      username: normalizedUsername,
-      loggedInAt: new Date().toISOString(),
-    })
-  );
-
-  return { ok: true };
-}
-
-function logout() {
-  window.localStorage.removeItem(HWWJ_AUTH_STORAGE_KEY);
-}
-
-function protectPage(loginPage = "login.html") {
-  if (!isLoggedIn()) {
-    window.location.replace(loginPage);
-    return false;
+  async function logout() {
+    try {
+      await requestJson("/api/auth/logout", { method: "POST" });
+    } catch (error) {
+      // Ignore logout transport errors and clear the local view of the session.
+    } finally {
+      cachedSession = unauthenticatedSession();
+    }
   }
-  return true;
-}
 
-function redirectIfLoggedIn(targetPage = "games.html") {
-  if (isLoggedIn()) {
-    window.location.replace(targetPage);
+  async function getSession(forceRefresh = false) {
+    if (!forceRefresh && cachedSession) {
+      return cachedSession;
+    }
+
+    try {
+      const { response, data } = await requestJson("/api/auth/session");
+      if (!response.ok) {
+        cachedSession = unauthenticatedSession();
+        return cachedSession;
+      }
+
+      cachedSession = normalizeSessionPayload(data);
+      return cachedSession;
+    } catch (error) {
+      cachedSession = unauthenticatedSession();
+      return cachedSession;
+    }
+  }
+
+  async function getCurrentUser(forceRefresh = false) {
+    const session = await getSession(forceRefresh);
+    return session.user;
+  }
+
+  async function isLoggedIn(forceRefresh = false) {
+    const session = await getSession(forceRefresh);
+    return session.authenticated;
+  }
+
+  async function protectPage(loginPage = "login.html") {
+    const session = await getSession(true);
+    if (!session.authenticated) {
+      window.location.replace(loginPage);
+      return false;
+    }
     return true;
   }
-  return false;
+
+  async function requireUser(loginPage = "login.html") {
+    const session = await getSession(true);
+
+    if (!session.authenticated || !session.user) {
+      window.location.replace(loginPage);
+      throw new Error("Authentication required");
+    }
+
+    return session.user;
+  }
+
+  async function redirectIfLoggedIn(targetPage = "games.html") {
+    const session = await getSession(true);
+    if (session.authenticated) {
+      window.location.replace(targetPage);
+      return true;
+    }
+    return false;
+  }
+
+  function getCurrentUsername() {
+    return cachedSession?.user?.username || "";
+  }
+
+  return {
+    getSession,
+    getCurrentUser,
+    getCurrentUsername,
+    isLoggedIn,
+    login,
+    logout,
+    protectPage,
+    redirectIfLoggedIn,
+    requireUser,
+  };
+})();
+
+window.HWWJAuth = HWWJAuth;
+
+async function requestJson(url, options = {}) {
+  const headers = new Headers(options.headers || {});
+  if (options.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const response = await window.fetch(url, {
+    ...options,
+    headers,
+    credentials: "same-origin",
+  });
+
+  let data = null;
+  try {
+    data = await response.json();
+  } catch (error) {
+    data = null;
+  }
+
+  return { response, data };
 }
 
-function getCurrentUsername() {
-  return getStoredAuth()?.username || "";
+function normalizeSessionPayload(payload) {
+  const authenticated = Boolean(payload?.authenticated);
+  const user = authenticated && isValidUser(payload?.user) ? payload.user : null;
+
+  return {
+    authenticated: Boolean(user),
+    user,
+  };
 }
 
-window.HWWJAuth = {
-  defaultUsername: HWWJ_DEFAULT_ACCOUNT.username,
-  defaultPassword: HWWJ_DEFAULT_ACCOUNT.password,
-  isLoggedIn,
-  login,
-  logout,
-  protectPage,
-  redirectIfLoggedIn,
-  getCurrentUsername,
-};
+function unauthenticatedSession() {
+  return {
+    authenticated: false,
+    user: null,
+  };
+}
+
+function isValidUser(user) {
+  return Boolean(user && typeof user === "object" && typeof user.username === "string" && user.username.trim());
+}

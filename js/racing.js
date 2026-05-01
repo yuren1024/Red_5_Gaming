@@ -109,10 +109,11 @@ let geometry = createTrackGeometry(activeTrack);
 let animationFrameId = null;
 let lastFrameAt = performance.now();
 
-init();
+init().catch(() => {});
 
-function init() {
-  currentUsernameEl.textContent = window.HWWJAuth.getCurrentUsername();
+async function init() {
+  const user = await window.HWWJAuth.requireUser("login.html");
+  currentUsernameEl.textContent = user.username;
   applyTrackMetadata();
   renderTrackButtons();
   resetRaceState(STATE.IDLE, `已选择 ${activeTrack.name}`);
@@ -140,8 +141,8 @@ function bindEvents() {
     window.location.href = "games.html";
   });
 
-  logoutBtn.addEventListener("click", () => {
-    window.HWWJAuth.logout();
+  logoutBtn.addEventListener("click", async () => {
+    await window.HWWJAuth.logout();
     window.location.href = "login.html";
   });
 

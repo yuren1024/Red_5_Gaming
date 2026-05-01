@@ -167,8 +167,8 @@
         window.location.href = "games.html";
       });
 
-      document.querySelector("#logout-btn").addEventListener("click", () => {
-        window.HWWJAuth.logout();
+      document.querySelector("#logout-btn").addEventListener("click", async () => {
+        await window.HWWJAuth.logout();
         window.location.href = "login.html";
       });
     </script>

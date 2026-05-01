@@ -12,36 +12,82 @@
   </head>
   <body>
     <main class="auth-shell">
-      <section class="auth-card">
-        <p class="eyebrow">Simple Login</p>
-        <h1>红五游戏中心登录</h1>
-        <p class="auth-copy">当前先使用固定账号登录，登录后进入游戏选择页面。</p>
-
-        <form id="login-form" class="auth-form">
-          <div class="field">
-            <label for="username">账号</label>
-            <input id="username" name="username" type="text" autocomplete="username" required />
+      <section class="auth-layout">
+        <section class="auth-showcase">
+          <div class="auth-showcase-copy">
+            <p class="eyebrow">Game Portal</p>
+            <h1>欢迎来到红五游戏中心</h1>
+            <p class="auth-copy">
+              延续当前项目的清爽蓝白风格，把常用入口、玩法信息和登录操作整合在同一首页，进入后可直接开始记分或小游戏体验。
+            </p>
           </div>
 
-          <div class="field">
-            <label for="password">密码</label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autocomplete="current-password"
-              required
-            />
+          <div class="auth-highlight">
+            <div class="auth-highlight-top">
+              <span class="badge">本地轻量体验</span>
+              <strong>登录后即可进入游戏选择页</strong>
+            </div>
+            <p>
+              当前账号体系基于浏览器本地数据，适合个人设备快速进入，不需要额外部署服务端。
+            </p>
           </div>
 
-          <button type="submit" class="primary-btn">登录</button>
-        </form>
+          <div class="auth-feature-grid">
+            <article class="auth-feature-card">
+              <strong>红五五家记分</strong>
+              <p>支持一般情况、独打和逃跑结算，保留本地统计与历史记录。</p>
+            </article>
+            <article class="auth-feature-card">
+              <strong>游戏入口集中</strong>
+              <p>登录后统一进入游戏中心，后续扩展新页面时也能保持一致入口。</p>
+            </article>
+            <article class="auth-feature-card">
+              <strong>浏览器即开即用</strong>
+              <p>无需安装额外依赖，保持静态页面项目的轻量使用体验。</p>
+            </article>
+          </div>
+        </section>
 
-        <div class="auth-tips">
-          <p>默认账号：<strong>于人</strong></p>
-          <p>默认密码：<strong>123456</strong></p>
-          <p id="login-message" class="auth-message hidden"></p>
-        </div>
+        <section class="auth-card">
+          <div class="auth-card-header">
+            <p class="eyebrow">Account Login</p>
+            <h2>账号登录</h2>
+            <p class="auth-copy">账号校验已迁移到服务端，输入管理员分配的账号与密码后进入游戏选择页面。</p>
+          </div>
+
+          <form id="login-form" class="auth-form">
+            <div class="field">
+              <label for="username">账号</label>
+              <input id="username" name="username" type="text" autocomplete="username" required />
+            </div>
+
+            <div class="field">
+              <label for="password">密码</label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autocomplete="current-password"
+                required
+              />
+            </div>
+
+            <button type="submit" class="primary-btn auth-submit-btn">进入游戏中心</button>
+          </form>
+
+          <div class="auth-tips">
+            <div class="auth-tip-row">
+              <span>登录方式</span>
+              <strong>服务端鉴权</strong>
+            </div>
+            <div class="auth-tip-row">
+              <span>密码存储</span>
+              <strong>仅保存哈希</strong>
+            </div>
+            <p>前端页面不再展示默认账号密码；如需创建或重置账号，请在服务端更新认证配置。</p>
+            <p id="login-message" class="auth-message hidden"></p>
+          </div>
+        </section>
       </section>
     </main>
 
@@ -50,17 +96,27 @@
       const usernameInput = document.querySelector("#username");
       const passwordInput = document.querySelector("#password");
       const loginMessage = document.querySelector("#login-message");
+      const submitBtn = loginForm.querySelector('button[type="submit"]');
 
-      usernameInput.value = window.HWWJAuth.defaultUsername;
-      passwordInput.value = window.HWWJAuth.defaultPassword;
-
-      loginForm.addEventListener("submit", (event) => {
+      loginForm.addEventListener("submit", async (event) => {
         event.preventDefault();
-        const result = window.HWWJAuth.login(usernameInput.value, passwordInput.value);
+        submitBtn.disabled = true;
+        loginMessage.classList.add("hidden");
+
+        let result;
+        try {
+          result = await window.HWWJAuth.login(usernameInput.value, passwordInput.value);
+        } catch (error) {
+          result = {
+            ok: false,
+            message: "登录服务暂时不可用，请确认认证服务已启动。",
+          };
+        }
 
         if (!result.ok) {
           loginMessage.textContent = result.message;
           loginMessage.classList.remove("hidden");
+          submitBtn.disabled = false;
           return;
         }
 

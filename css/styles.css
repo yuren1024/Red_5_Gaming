@@ -476,8 +476,16 @@ select {
   padding: 24px;
 }
 
+.auth-layout {
+  width: min(1100px, 100%);
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 420px);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.auth-showcase,
 .auth-card {
-  width: min(460px, 100%);
   background: var(--panel);
   border: 1px solid var(--panel-border);
   border-radius: var(--radius);
@@ -485,9 +493,33 @@ select {
   padding: 28px;
 }
 
-.auth-card h1 {
+.auth-showcase {
+  display: grid;
+  gap: 22px;
+  background:
+    radial-gradient(circle at top right, rgba(36, 88, 232, 0.12), transparent 34%),
+    linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
+}
+
+.auth-showcase-copy {
+  max-width: 640px;
+}
+
+.auth-showcase h1,
+.auth-card h1,
+.auth-card h2 {
   margin: 0 0 12px;
   font-size: clamp(28px, 4vw, 36px);
+}
+
+.auth-card {
+  width: 100%;
+  display: grid;
+  align-content: center;
+}
+
+.auth-card-header {
+  margin-bottom: 22px;
 }
 
 .auth-copy {
@@ -501,12 +533,88 @@ select {
   gap: 16px;
 }
 
+.auth-submit-btn {
+  margin-top: 4px;
+  width: 100%;
+  min-height: 48px;
+  font-weight: 700;
+}
+
+.auth-highlight {
+  padding: 18px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #f9fbff 0%, #edf3ff 100%);
+  border: 1px solid #cfddff;
+}
+
+.auth-highlight-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.auth-highlight strong {
+  font-size: 18px;
+}
+
+.auth-highlight p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.auth-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.auth-feature-card {
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid #dce5f6;
+  background: #fbfcff;
+}
+
+.auth-feature-card strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 17px;
+}
+
+.auth-feature-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
 .auth-tips {
   margin-top: 18px;
   padding: 16px;
   border-radius: 14px;
   background: #fafcff;
   border: 1px dashed #cdd7eb;
+}
+
+.auth-tip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #e6edf8;
+}
+
+.auth-tip-row span {
+  color: var(--muted);
+}
+
+.auth-tip-row strong {
+  color: var(--text);
 }
 
 .auth-tips p {
@@ -661,6 +769,14 @@ select {
 
   .snake-board-wrap {
     gap: 12px;
+  }
+
+  .auth-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-feature-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -910,5 +1026,20 @@ select {
 
   .racing-result-grid {
     grid-template-columns: 1fr;
+  }
+
+  .auth-shell {
+    padding: 16px;
+  }
+
+  .auth-showcase,
+  .auth-card {
+    padding: 20px;
+  }
+
+  .auth-highlight-top,
+  .auth-tip-row {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
